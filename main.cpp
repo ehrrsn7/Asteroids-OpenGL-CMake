@@ -12,8 +12,6 @@ int main()
    Window window(800, 600, "Asteroids");
    UI ui(window);
    Draw gui;
-
-   // Create the Game object
    Game game;
 
    // --- MAIN ENGINE LOOP ---
