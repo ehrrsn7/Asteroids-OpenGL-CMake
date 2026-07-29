@@ -11,7 +11,7 @@ int main()
    // Initialize the interfaces
    Window window(800, 600, "Asteroids");
    UI ui(window);
-   Draw gui; //#test
+   Draw gui;
    Game game;
 
    // --- MAIN ENGINE LOOP ---
