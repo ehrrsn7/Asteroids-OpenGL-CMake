@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cmath>
 
 #include "window.hpp"
 #include "game.hpp" // Required so run() can call game.input, game.update, and game.output
@@ -22,15 +23,20 @@ Window::Window(int width, int height, const std::string &title)
    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-   m_window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+   glfwWindowHint(GLFW_SAMPLES, 4);
+
+   m_window = glfwCreateWindow((int)width, (int)height, title.c_str(), nullptr, nullptr);
    if (!m_window)
    {
       std::cerr << "Failed to create GLFW window\n";
       glfwTerminate();
-      return;
+      throw std::runtime_error("Failed to create GLFW window."); // Halts the program
    }
 
+   // glEnable(GL_MULTISAMPLE); // !Fix halts the program
+
    glfwMakeContextCurrent(m_window);
+   glfwSwapInterval(1); // Lock to vsync so frame timing (dt) is stable
 
    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
    {
@@ -65,9 +71,9 @@ void Window::swapBuffersAndPollEvents()
    glfwPollEvents();
 }
 
-float Window::updateDeltaTime()
+double Window::updateDeltaTime()
 {
-   float currentFrame = static_cast<float>(glfwGetTime());
+   double currentFrame = glfwGetTime();
    m_deltaTime = currentFrame - m_lastFrameTime;
    m_lastFrameTime = currentFrame;
    return m_deltaTime;
@@ -197,8 +203,8 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 
 Draw::Draw(Shader *shader) : m_shader(shader)
 {
-   setupAsteroidVerticies();
-   setupShipVerticies();
+   setupRockVertices();
+   setupShipVertices();
 }
 
 Draw::Draw()
@@ -206,78 +212,110 @@ Draw::Draw()
    // Use 'new' to dynamically allocate the shader so it stays alive
    m_shader = new Shader("assets/shaders/default.vert", "assets/shaders/default.frag");
 
-   setupAsteroidVerticies();
-   setupShipVerticies();
+   setupRockVertices();
+   setupShipVertices();
 }
 
 Draw::~Draw()
 {
    delete m_shader;
-   glDeleteVertexArrays(1, &m_asteroidVAO);
-   glDeleteBuffers(1, &m_asteroidVBO);
-   glDeleteBuffers(1, &m_asteroidEBO);
+   glDeleteVertexArrays(3, m_rockVAO);
+   glDeleteBuffers(3, m_rockVBO);
+   glDeleteBuffers(3, m_rockEBO);
    glDeleteVertexArrays(1, &m_shipVAO);
    glDeleteBuffers(1, &m_shipVBO);
    glDeleteBuffers(1, &m_shipEBO);
 }
 
-void Draw::asteroid(float x, float y, float angle, float scale)
+void Draw::rock(double x, double y, double angle, double scale, rocks which)
 {
    m_shader->setVec2("u_offset", x, y);
-   m_shader->setFloat("u_angle", angle);
-   m_shader->setFloat("u_scale", scale);
+   m_shader->setFloat("u_scale", static_cast<float>(scale));
+   m_shader->setFloat("u_aspect", m_aspect);
+   m_shader->setFloat("u_sinAngle", static_cast<float>(std::sin(angle)));
+   m_shader->setFloat("u_cosAngle", static_cast<float>(std::cos(angle)));
 
-   glBindVertexArray(m_asteroidVAO);
-   glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0); // 12 indices for hexagon
+   glBindVertexArray(m_rockVAO[which]);
+   glDrawElements(GL_LINES, m_rockTriCount[which], GL_UNSIGNED_INT, 0); // 12 indices for hexagon
    glBindVertexArray(0);
 }
 
-void Draw::ship(float x, float y, float angle, float scale)
+void Draw::ship(double x, double y, double angle, double scale)
 {
    m_shader->setVec2("u_offset", x, y);
-   m_shader->setFloat("u_angle", angle);
-   m_shader->setFloat("u_scale", scale);
+   m_shader->setFloat("u_scale", static_cast<float>(scale));
+   m_shader->setFloat("u_aspect", m_aspect);
+   m_shader->setFloat("u_sinAngle", static_cast<float>(std::sin(angle)));
+   m_shader->setFloat("u_cosAngle", static_cast<float>(std::cos(angle)));
 
    glBindVertexArray(m_shipVAO);
-   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+   glDrawElements(GL_LINES, m_shipTriCount, GL_UNSIGNED_INT, 0);
+   // glPointSize(5); // debug: use points instead
+   // glDrawArrays(GL_POINTS, 0, m_shipVertexCount);
+   glBindVertexArray(0);
+
+   // std::cout << m_shader << '|' 
+   //    << angle << '|' 
+   //    << m_shipVAO << std::endl; 
+}
+
+void Draw::setAspectRatio(float aspect)
+{
+   m_aspect = aspect;
+}
+
+void Draw::setupRockVertices() {
+   for(int i = 0; i < 3; i++) {
+      std::vector<double> vertices;
+      std::vector<unsigned int> indices;
+      
+      loadShape(vertices, indices, rockFiles[i]);
+      centerVertices(vertices);
+      
+      m_rockTriCount[i] = indices.size();
+      std::vector<float> floatVerts(vertices.begin(), vertices.end());
+
+      glGenVertexArrays(1, &m_rockVAO[i]);
+      glGenBuffers(1, &m_rockVBO[i]);
+      glGenBuffers(1, &m_rockEBO[i]);
+
+      glBindVertexArray(m_rockVAO[i]);
+      glBindBuffer(GL_ARRAY_BUFFER, m_rockVBO[i]);
+      glBufferData(GL_ARRAY_BUFFER, floatVerts.size() * sizeof(float), floatVerts.data(), GL_STATIC_DRAW);
+      
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_rockEBO[i]);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+      glEnableVertexAttribArray(1);
+   }
    glBindVertexArray(0);
 }
 
-void Draw::setupAsteroidVerticies()
+void Draw::setupShipVertices()
 {
-   float vertices[] = {
-       0.0f, 0.2f, 0.0f, 0.6f, 0.6f, 0.6f,
-       0.17f, 0.1f, 0.0f, 0.6f, 0.6f, 0.6f,
-       0.17f, -0.1f, 0.0f, 0.6f, 0.6f, 0.6f,
-       0.0f, -0.2f, 0.0f, 0.6f, 0.6f, 0.6f,
-       -0.17f, -0.1f, 0.0f, 0.6f, 0.6f, 0.6f,
-       -0.17f, 0.1f, 0.0f, 0.6f, 0.6f, 0.6f};
-   unsigned int indices[] = {0, 1, 5, 1, 2, 5, 2, 3, 4, 2, 4, 5};
+   std::vector<double> verts;
+   std::vector<unsigned int> indices;
 
-   glGenVertexArrays(1, &m_asteroidVAO);
-   glGenBuffers(1, &m_asteroidVBO);
-   glGenBuffers(1, &m_asteroidEBO);
+   try {
+      loadShape(verts, indices, "assets/shapes/lander.txt");
+      centerVertices(verts);
+   }
+   catch (...) {
+      std::cerr << "using fallback ship verts\n";
+      
+      verts.assign(std::begin(shipFallbackVerts), std::end(shipFallbackVerts));
+      indices.assign(std::begin(shipFallbackInds), std::end(shipFallbackInds));
+   }
 
-   glBindVertexArray(m_asteroidVAO);
-   glBindBuffer(GL_ARRAY_BUFFER, m_asteroidVBO);
-   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_asteroidEBO);
-   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+   if (verts.empty() || indices.empty()) {
+      throw std::runtime_error("Vertices or indices are empty; failed to generate shape data.");
+   }
 
-   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
-   glEnableVertexAttribArray(0);
-   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-   glEnableVertexAttribArray(1);
-   glBindVertexArray(0);
-}
-
-void Draw::setupShipVerticies()
-{
-   float vertices[] = {
-       0.0f, 0.1f, 0.0f, 0.2f, 1.0f, 0.2f,
-       0.1f, -0.1f, 0.0f, 0.2f, 1.0f, 0.2f,
-       -0.1f, -0.1f, 0.0f, 0.2f, 1.0f, 0.2f};
-   unsigned int indices[] = {0, 1, 2};
+   std::vector<float> vertices(verts.begin(), verts.end());
+   m_shipTriCount = indices.size();
 
    glGenVertexArrays(1, &m_shipVAO);
    glGenBuffers(1, &m_shipVBO);
@@ -285,15 +323,102 @@ void Draw::setupShipVerticies()
 
    glBindVertexArray(m_shipVAO);
    glBindBuffer(GL_ARRAY_BUFFER, m_shipVBO);
-   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+   glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_shipEBO);
-   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
    glEnableVertexAttribArray(0);
    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
    glEnableVertexAttribArray(1);
    glBindVertexArray(0);
+
+   m_shipVertexCount = vertices.size() / 6;   // 6 floats per vertex
+}
+
+void Draw::pushVertex(std::vector<double>& verts, double x, double y) {
+   verts.push_back(x / 25.0); // Normalize by SVG viewBox scale
+   verts.push_back(y / 25.0); // scale is (1, -1)
+   verts.push_back(0.0); // Z
+   verts.push_back(1.0); // R (White)
+   verts.push_back(1.0); // G
+   verts.push_back(1.0); // B
+}
+
+void Draw::centerVertices(std::vector<double>& vertices)
+{
+   if (vertices.empty()) {
+      return;
+   }
+
+   const size_t vertexCount = vertices.size() / 6;
+   double sumX = 0.0;
+   double sumY = 0.0;
+
+   for (size_t i = 0; i < vertexCount; ++i) {
+      const size_t base = i * 6;
+      sumX += vertices[base];
+      sumY += vertices[base + 1];
+   }
+
+   const double centerX = sumX / static_cast<double>(vertexCount);
+   const double centerY = sumY / static_cast<double>(vertexCount);
+
+   for (size_t i = 0; i < vertexCount; ++i) {
+      const size_t base = i * 6;
+      vertices[base] -= centerX;
+      vertices[base + 1] -= centerY;
+   }
+}
+
+void Draw::loadShape(std::vector<double>& vertices, std::vector<unsigned int>& indices, std::string path) {
+   std::ifstream file(path);
+   if (file.is_open()) {
+      std::string line;
+      unsigned int currentIndex = 0;
+      
+      while (std::getline(file, line)) {
+         if (!line.empty() && line[0] != '#') {
+            std::istringstream iss(line);
+            std::string type;
+            iss >> type;
+            
+            if (type == "LINE") {
+               double x1, y1, x2, y2;
+               if (iss >> x1 >> y1 >> x2 >> y2) {
+                  pushVertex(vertices, x1, y1);
+                  indices.push_back(currentIndex++);
+                  pushVertex(vertices, x2, y2);
+                  indices.push_back(currentIndex++);
+               }
+            }
+
+            else if (type == "POLY") {
+               std::vector<std::pair<double, double>> pts;
+               double px, py;
+               while (iss >> px >> py)
+                  pts.push_back({px, py});
+
+               if (pts.size() >= 3) {
+                  for (size_t i = 0; i < pts.size(); ++i) {
+                     size_t next = (i + 1) % pts.size();
+                     pushVertex(vertices, pts[i].first,    pts[i].second);
+                     pushVertex(vertices, pts[next].first, pts[next].second);
+                     indices.push_back(currentIndex++);
+                     indices.push_back(currentIndex++);
+                  }
+               }
+            }
+         }
+
+      } // end while
+
+      file.close();
+   }
+
+   else {
+      throw std::runtime_error("Warning: Could not load {" + path + "}. Using hardcoded fallback.\n");
+   }
 }
 
 int run(UI &ui, Game &game, Draw &draw)
@@ -304,12 +429,20 @@ int run(UI &ui, Game &game, Draw &draw)
    GLFWwindow *window = ui.getNativeWindow();
    while (!ui.shouldClose())
    {
-      float dt = ui.updateDeltaTime();
+      double dt = ui.updateDeltaTime();
 
       // --- Clear Screen ---
-      glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
+      glClearColor(0.05, 0.05, 0.3, 1.0);
       glClear(GL_COLOR_BUFFER_BIT);
       draw.getShader()->use();
+
+      int framebufferWidth = 0;
+      int framebufferHeight = 0;
+      glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+      const float aspect = (framebufferWidth > 0)
+                              ? static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth)
+                              : 0.75f;
+      draw.setAspectRatio(aspect);
 
       // --- Student Logic ---
       game.input(ui);

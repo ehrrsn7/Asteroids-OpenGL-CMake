@@ -4,26 +4,28 @@ layout (location = 1) in vec3 aColor;
 
 out vec3 ourColor;
 
-// We will pass these simple numbers from C++
 uniform vec2 u_offset;
-uniform float u_angle; // In radians
 uniform float u_scale;
+uniform float u_aspect;
+uniform float u_sinAngle;
+uniform float u_cosAngle;
 
 void main() {
    // 1. Scale
    vec2 scaledPos = aPos.xy * u_scale;
    
    // 2. Rotate (Standard 2D rotation matrix math)
-   float s = sin(u_angle);
-   float c = cos(u_angle);
    vec2 rotatedPos = vec2(
-   scaledPos.x * c - scaledPos.y * s,
-   scaledPos.x * s + scaledPos.y * c
+      scaledPos.x * u_cosAngle - scaledPos.y * u_sinAngle,
+      scaledPos.x * u_sinAngle + scaledPos.y * u_cosAngle
    );
    
-   // 3. Translate (Move)
-   vec2 finalPos = rotatedPos + u_offset;
+   // 3. Aspect Ratio Correction (Applied AFTER rotation!)
+   rotatedPos.x *= u_aspect;
    
+   // 4. Translate (Move)
+   vec2 finalPos = rotatedPos + u_offset;
    gl_Position = vec4(finalPos, 0.0, 1.0);
+
    ourColor = aColor;
 }

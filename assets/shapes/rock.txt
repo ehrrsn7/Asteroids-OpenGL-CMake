@@ -1,0 +1,2 @@
+# Classic Jagged Asteroid (Vector Line Loop)
+POLY -15 5 -5 15 10 15 15 5 10 -5 15 -10 5 -15 -10 -15 -15 -5
