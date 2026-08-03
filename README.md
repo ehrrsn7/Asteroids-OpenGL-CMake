@@ -3,6 +3,8 @@
 
 This project uses OpenGL, GLFW, and GLAD. On Windows, you need a C++ toolchain, GLFW, and the DLLs available at runtime.
 
+> Minimum C++ Version: C++22
+
 ## Quick start (Windows)
 
 ```powershell

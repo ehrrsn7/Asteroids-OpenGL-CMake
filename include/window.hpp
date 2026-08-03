@@ -10,6 +10,7 @@
 #include <GLFW/glfw3.h>
 #include <string>
 #include <vector>
+#include <utility>
 
 // Forward declaration of the Game class to avoid circular dependency
 // Do not #include "game.hpp"
@@ -18,7 +19,8 @@ class Game;
 class Window
 {
 public:
-   Window(int width, int height, const std::string &title);
+   Window(std::pair<int, int> size, const std::string &title, 
+      std::tuple<double, double, double, double> bgColor = {0.0, 0.0, 0.0, 1.0});
    ~Window();
 
    bool shouldClose() const;
@@ -71,6 +73,7 @@ public:
    // Simple helpers for our 2D math
    void setFloat(const std::string &name, float value) const;
    void setVec2(const std::string &name, float x, float y) const;
+   void setVec3(const std::string &name, float r, float g, float b) const;
 
 private:
    void checkCompileErrors(GLuint shader, const std::string &type);
@@ -84,80 +87,106 @@ public:
    Draw();
    ~Draw();
 
-   // High-level drawing functions
+   // High-level drawing functions with color
    enum rocks { SMALL_ROCK, NORMAL_ROCK, LARGE_ROCK }; // match rockFiles[] below
-   void rock(double x, double y, double angle, double scale, rocks which = NORMAL_ROCK);
-   void rock(std::pair<double, double> position, double angle, double scale, rocks which = NORMAL_ROCK) {
-      rock(position.first, position.second, angle, scale, which);
-   }
+   void rock(std::pair<double, double> position, double angle, double scale, 
+      std::tuple<double, double, double, double> color = white, rocks which = NORMAL_ROCK);
+   void ship(std::pair<double, double> position, double angle, double scale,
+      std::tuple<double, double, double, double> color = white, bool thrusting = false);
+   void dot(std::pair<double, double> position, double scale,
+      std::tuple<double, double, double, double> color = white);
+   void circle(std::pair<double, double> position, double radius,
+      std::tuple<double, double, double, double> color = white);
+   void text(std::pair<double, double> position, const std::string &text, double size,
+      std::tuple<double, double, double, double> color = white);
 
-   void ship(double x, double y, double angle, double scale = 0.1);
-   void ship(std::pair<double, double> position, double angle, double scale = 0.1) {
-      ship(position.first, position.second, angle, scale);
-   }
-
-   void dot(double x, double y, double scale);
-   void dot(std::pair<double, double> position, double scale) {
-      dot(position.first, position.second, scale);
-   }
-   
    void setAspectRatio(float aspect);
    Shader* getShader() { return m_shader; }
+
+   // colors
+   static constexpr std::tuple<double, double, double, double> green
+      {0.0, 1.0, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> red
+      {1.0, 0.0, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> blue
+      {0.0, 0.0, 1.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> white
+      {1.0, 1.0, 1.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> black
+      {0.0, 0.0, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> yellow
+      {1.0, 1.0, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> cyan
+      {0.0, 1.0, 1.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> magenta
+      {1.0, 0.0, 1.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> orange
+      {1.0, 0.5, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> purple
+      {0.5, 0.0, 0.5, 1.0};
+   static constexpr std::tuple<double, double, double, double> brown
+      {0.6, 0.3, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> pink
+      {1.0, 0.75, 0.8, 1.0};
+   static constexpr std::tuple<double, double, double, double> gray
+      {0.5, 0.5, 0.5, 1.0};
+   static constexpr std::tuple<double, double, double, double> lightGray
+      {0.75, 0.75, 0.75, 1.0};
+   static constexpr std::tuple<double, double, double, double> darkGray
+      {0.25, 0.25, 0.25, 1.0};
+   static constexpr std::tuple<double, double, double, double> teal
+      {0.0, 0.5, 0.5, 1.0};
+   static constexpr std::tuple<double, double, double, double> navy
+      {0.0, 0.0, 0.5, 1.0};
+   std::tuple<double, double, double, double> randomColor() {
+      return {static_cast<double>(rand()) / RAND_MAX,
+              static_cast<double>(rand()) / RAND_MAX,
+              static_cast<double>(rand()) / RAND_MAX,
+              1.0};
+   }
 
 private:
    Shader *m_shader;
    float m_aspect{0.75f};
 
+   // OpenGL IDs for the Ship
+   void setupShipVertices();
+   GLuint m_shipVAO, m_shipVBO, m_shipEBO;
+   unsigned int m_shipLineCount{0}, m_shipTriCount{0};
+   GLsizei m_shipVertexCount = 0;
+   
+   // OpenGL IDs for the Ship Thrust
+   void setupShipThrustVertices();
+   GLuint m_shipThrustVAO, m_shipThrustVBO, m_shipThrustEBO;
+   unsigned int m_shipThrustTriCount{0};
+
    // OpenGL IDs for the Asteroid
+   void setupRockVertices();
    GLuint m_rockVAO[3], m_rockVBO[3], m_rockEBO[3];
    unsigned int m_rockTriCount[3];
-   static constexpr double rockFallbackVerts[] = {
-      0.0, 0.2, 0.0, 0.6, 0.6, 0.6,
-      0.17, 0.1, 0.0, 0.6, 0.6, 0.6,
-      0.17, -0.1, 0.0, 0.6, 0.6, 0.6,
-      0.0, -0.2, 0.0, 0.6, 0.6, 0.6,
-      -0.17, -0.1, 0.0, 0.6, 0.6, 0.6,
-      -0.17, 0.1, 0.0, 0.6, 0.6, 0.6};
-   static constexpr unsigned int rockFallbackInds[] = {0, 1, 5, 1, 2, 5, 2, 3, 4, 2, 4, 5};
 
    std::string rockFiles[3] = {
-      "assets/shapes/rockSmall.txt", 
-      "assets/shapes/rockNormal.txt", 
+      "assets/shapes/rockSmall.txt",
+      "assets/shapes/rockNormal.txt",
       "assets/shapes/rockLarge.txt"
    };
 
    // OpenGL IDs for simple dot rendering
+   void setupDotVertices();
    GLuint m_dotVAO, m_dotVBO, m_dotEBO;
    unsigned int m_dotTriCount{0};
 
-   // OpenGL IDs for the Ship
-   GLuint m_shipVAO, m_shipVBO, m_shipEBO;
-   unsigned int m_shipLineCount{0}, m_shipTriCount{0};
-   // Draw class
-   GLsizei m_shipVertexCount = 0;
-   static constexpr double shipFallbackVerts[] = {
-      // Line A
-      -1.0f/25.0f, 22.0f/25.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-      1.0f/25.0f, 22.0f/25.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-      // Line A2
-      0.0f/25.0f, 16.0f/25.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-      0.0f/25.0f, 22.0f/25.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-      // Base Polygon (Triangulated)
-      -15.0f/25.0f,   0.0f/25.0f, 0.0f, 0.5f, 0.5f, 0.5f,
-      15.0f/25.0f,   0.0f/25.0f, 0.0f, 0.5f, 0.5f, 0.5f,
-      15.0f/25.0f, -10.0f/25.0f, 0.0f, 0.5f, 0.5f, 0.5f,
-      -15.0f/25.0f, -10.0f/25.0f, 0.0f, 0.5f, 0.5f, 0.5f 
-   };
-   static constexpr unsigned int shipFallbackInds[] = {
-      0, 1, // Line 1
-      2, 3, // Line 2
-      4, 5, 6, 4, 6, 7 // Poly
-   };
+   // OpenGL IDs for circle rendering
+   void setupCircle();
+   GLuint m_circleVAO, m_circleVBO, m_circleEBO;
+   unsigned int m_circleTriCount{0};
+
+   // OpenGL IDs for text rendering
+   void setupText();
+   GLuint m_textVAO, m_textVBO, m_textEBO;
+   unsigned int m_textTriCount{0};
 
    // init functions to set up the vertex data
-   void setupRockVertices();
-   void setupShipVertices();
-   void setupDotVertices();
    void loadShape(std::vector<double>& vertices, std::vector<unsigned int>& indices, std::string path);
    void pushVertex(std::vector<double>& verts, double x, double y);
    void centerVertices(std::vector<double>& vertices);

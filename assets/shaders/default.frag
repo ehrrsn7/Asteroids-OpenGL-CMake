@@ -1,7 +1,12 @@
 #version 330 core
 out vec4 FragColor;
-in vec3 ourColor;
 
-void main() {
-   FragColor = vec4(ourColor, 1.0);
+// 1. Change vec2 to vec3
+uniform vec3 u_color; 
+uniform float u_alpha;
+
+void main()
+{
+   // 2. Pass the vec3 directly; it will map to (r, g, b)
+   FragColor = vec4(u_color, u_alpha); 
 }

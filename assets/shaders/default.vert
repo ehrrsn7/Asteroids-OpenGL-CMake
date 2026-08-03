@@ -2,13 +2,15 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aColor;
 
-out vec3 ourColor;
+out vec4 vColor;
 
 uniform vec2 u_offset;
 uniform float u_scale;
 uniform float u_aspect;
 uniform float u_sinAngle;
 uniform float u_cosAngle;
+uniform vec2 u_color;
+uniform float u_alpha;
 
 void main() {
    // 1. Scale
@@ -27,5 +29,5 @@ void main() {
    vec2 finalPos = rotatedPos + u_offset;
    gl_Position = vec4(finalPos, 0.0, 1.0);
 
-   ourColor = aColor;
+   vColor = vec4(aColor * vec3(u_color.x, u_color.y, 1.0), u_alpha);
 }

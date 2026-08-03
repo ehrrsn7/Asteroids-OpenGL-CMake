@@ -1,0 +1,6 @@
+# Classic Asteroids ship derived from ship.svg
+# Coordinates use the game's y-up LINE/POLY format.
+# Triangle nose points up; two extra lines extend from the nose to the rear bottom corners.
+POLY 20 0 -10 15 -10 -15
+LINE 20 0 -14 -17
+LINE 20 0 -14 17

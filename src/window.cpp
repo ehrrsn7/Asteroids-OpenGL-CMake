@@ -5,11 +5,14 @@
 #include <sstream>
 #include <cmath>
 #include <filesystem>
+#include <array>
+#include <cctype>
 
 #include "window.hpp"
 #include "game.hpp" // Required so run() can call game.input, game.update, and game.output
 
-Window::Window(int width, int height, const std::string &title)
+Window::Window(std::pair<int, int> size, const std::string &title, 
+   std::tuple<double, double, double, double> bgColor)
 {
    if (!glfwInit())
    {
@@ -26,7 +29,7 @@ Window::Window(int width, int height, const std::string &title)
 
    glfwWindowHint(GLFW_SAMPLES, 4);
 
-   m_window = glfwCreateWindow((int)width, (int)height, title.c_str(), nullptr, nullptr);
+   m_window = glfwCreateWindow(size.first, size.second, title.c_str(), nullptr, nullptr);
    if (!m_window)
    {
       std::cerr << "Failed to create GLFW window\n";
@@ -46,7 +49,12 @@ Window::Window(int width, int height, const std::string &title)
       return;
    }
 
-   glViewport(0, 0, width, height);
+   glViewport(0, 0, size.first, size.second);
+   glClearColor(
+      std::get<0>(bgColor), 
+      std::get<1>(bgColor), 
+      std::get<2>(bgColor), 
+      std::get<3>(bgColor));
 
    // Framebuffer resize callback
    glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow *, int w, int h)
@@ -93,25 +101,237 @@ void UI::closeWindow()
 }
 
 // --- Shader IMPLEMENTATION ---
-namespace {
-std::string resolveAssetPath(const std::string &path)
+namespace
 {
-   namespace fs = std::filesystem;
-   if (fs::exists(path))
+   std::string resolveAssetPath(const std::string &path)
+   {
+      namespace fs = std::filesystem;
+      if (fs::exists(path))
+         return path;
+
+      const fs::path executablePath = fs::current_path();
+      const fs::path candidate = executablePath / path;
+      if (fs::exists(candidate))
+         return candidate.string();
+
+      const fs::path buildDir = executablePath.parent_path();
+      const fs::path buildCandidate = buildDir / path;
+      if (fs::exists(buildCandidate))
+         return buildCandidate.string();
+
       return path;
+   }
 
-   const fs::path executablePath = fs::current_path();
-   const fs::path candidate = executablePath / path;
-   if (fs::exists(candidate))
-      return candidate.string();
+   struct GlyphCell
+   {
+      std::array<std::array<bool, 5>, 7> pixels{};
+   };
 
-   const fs::path buildDir = executablePath.parent_path();
-   const fs::path buildCandidate = buildDir / path;
-   if (fs::exists(buildCandidate))
-      return buildCandidate.string();
+   GlyphCell makeGlyph(char ch)
+   {
+      GlyphCell glyph{};
+      const char upper = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
 
-   return path;
-}
+      auto fillRows = [&](const std::array<const char *, 7> &rows)
+      {
+         for (int row = 0; row < 7; ++row)
+         {
+            for (int col = 0; col < 5; ++col)
+            {
+               glyph.pixels[row][col] = (rows[row][col] == '1');
+            }
+         }
+      };
+
+      switch (upper)
+      {
+      case 'A':
+         fillRows({"01110", "10001", "10001", "11111", "10001", "10001", "10001"});
+         break;
+      case 'B':
+         fillRows({"11110", "10001", "10001", "11110", "10001", "10001", "11110"});
+         break;
+      case 'C':
+         fillRows({"01110", "10001", "10000", "10000", "10000", "10001", "01110"});
+         break;
+      case 'D':
+         fillRows({"11110", "10001", "10001", "10001", "10001", "10001", "11110"});
+         break;
+      case 'E':
+         fillRows({"11111", "10000", "10000", "11110", "10000", "10000", "11111"});
+         break;
+      case 'F':
+         fillRows({"11111", "10000", "10000", "11110", "10000", "10000", "10000"});
+         break;
+      case 'G':
+         fillRows({"01110", "10001", "10000", "10111", "10001", "10001", "01110"});
+         break;
+      case 'H':
+         fillRows({"10001", "10001", "10001", "11111", "10001", "10001", "10001"});
+         break;
+      case 'I':
+         fillRows({"01110", "00100", "00100", "00100", "00100", "00100", "01110"});
+         break;
+      case 'J':
+         fillRows({"00111", "00010", "00010", "00010", "00010", "10010", "01100"});
+         break;
+      case 'K':
+         fillRows({"10001", "10010", "10100", "11000", "10100", "10010", "10001"});
+         break;
+      case 'L':
+         fillRows({"10000", "10000", "10000", "10000", "10000", "10000", "11111"});
+         break;
+      case 'M':
+         fillRows({"10001", "11011", "10101", "10101", "10001", "10001", "10001"});
+         break;
+      case 'N':
+         fillRows({"10001", "10001", "11001", "10101", "10011", "10001", "10001"});
+         break;
+      case 'O':
+         fillRows({"01110", "10001", "10001", "10001", "10001", "10001", "01110"});
+         break;
+      case 'P':
+         fillRows({"11110", "10001", "10001", "11110", "10000", "10000", "10000"});
+         break;
+      case 'Q':
+         fillRows({"01110", "10001", "10001", "10001", "10101", "10010", "01101"});
+         break;
+      case 'R':
+         fillRows({"11110", "10001", "10001", "11110", "10100", "10010", "10001"});
+         break;
+      case 'S':
+         fillRows({"01111", "10000", "10000", "01110", "00001", "00001", "11110"});
+         break;
+      case 'T':
+         fillRows({"11111", "00100", "00100", "00100", "00100", "00100", "00100"});
+         break;
+      case 'U':
+         fillRows({"10001", "10001", "10001", "10001", "10001", "10001", "01110"});
+         break;
+      case 'V':
+         fillRows({"10001", "10001", "10001", "10001", "10001", "01010", "00100"});
+         break;
+      case 'W':
+         fillRows({"10001", "10001", "10001", "10101", "10101", "11011", "10001"});
+         break;
+      case 'X':
+         fillRows({"10001", "10001", "01010", "00100", "01010", "10001", "10001"});
+         break;
+      case 'Y':
+         fillRows({"10001", "10001", "01010", "00100", "00100", "00100", "00100"});
+         break;
+      case 'Z':
+         fillRows({"11111", "00001", "00010", "00100", "01000", "10000", "11111"});
+         break;
+      case '0':
+         fillRows({"01110", "10001", "10011", "10101", "11001", "10001", "01110"});
+         break;
+      case '1':
+         fillRows({"00100", "01100", "00100", "00100", "00100", "00100", "01110"});
+         break;
+      case '2':
+         fillRows({"01110", "10001", "00001", "00010", "00100", "01000", "11111"});
+         break;
+      case '3':
+         fillRows({"11110", "00001", "00001", "01110", "00001", "00001", "11110"});
+         break;
+      case '4':
+         fillRows({"00010", "00110", "01010", "10010", "11111", "00010", "00010"});
+         break;
+      case '5':
+         fillRows({"11111", "10000", "10000", "11110", "00001", "00001", "11110"});
+         break;
+      case '6':
+         fillRows({"01110", "10000", "10000", "11110", "10001", "10001", "01110"});
+         break;
+      case '7':
+         fillRows({"11111", "00001", "00010", "00100", "01000", "01000", "01000"});
+         break;
+      case '8':
+         fillRows({"01110", "10001", "10001", "01110", "10001", "10001", "01110"});
+         break;
+      case '9':
+         fillRows({"01110", "10001", "10001", "01111", "00001", "00010", "01100"});
+         break;
+      case ':':
+         fillRows({"00000", "00100", "00100", "00000", "00100", "00100", "00000"});
+         break;
+      case '.':
+         fillRows({"00000", "00000", "00000", "00000", "00000", "00100", "00100"});
+         break;
+      case '-':
+         fillRows({"00000", "00000", "00000", "11111", "00000", "00000", "00000"});
+         break;
+      case '+':
+         fillRows({"00000", "00100", "00100", "11111", "00100", "00100", "00000"});
+         break;
+      case ' ':
+         break;
+      default:
+         fillRows({"01110", "10001", "00110", "00000", "00100", "00000", "00100"});
+         break;
+      }
+
+      return glyph;
+   }
+
+   void appendPixelQuad(std::vector<float> &vertices, std::vector<unsigned int> &indices, double x, double y, double size)
+   {
+      const size_t base = vertices.size() / 6;
+
+      const std::array<std::pair<double, double>, 4> corners = {
+         std::make_pair(x, y),
+         std::make_pair(x + size, y),
+         std::make_pair(x + size, y + size),
+         std::make_pair(x, y + size)};
+
+      for (const auto &corner : corners)
+      {
+         vertices.push_back(static_cast<float>(corner.first));
+         vertices.push_back(static_cast<float>(corner.second));
+         vertices.push_back(0.0f);
+         vertices.push_back(1.0f);
+         vertices.push_back(1.0f);
+         vertices.push_back(1.0f);
+      }
+
+      indices.push_back(static_cast<unsigned int>(base));
+      indices.push_back(static_cast<unsigned int>(base + 1));
+      indices.push_back(static_cast<unsigned int>(base + 2));
+      indices.push_back(static_cast<unsigned int>(base));
+      indices.push_back(static_cast<unsigned int>(base + 2));
+      indices.push_back(static_cast<unsigned int>(base + 3));
+   }
+
+   void appendTextGeometry(std::vector<float> &vertices, std::vector<unsigned int> &indices, const std::string &text, double cellSize)
+   {
+      const double charAdvance = cellSize * 6.0;
+      double cursorX = 0.0;
+      double cursorY = 0.0;
+      const double lineAdvance = cellSize * 8.0;
+      for (char ch : text)
+      {
+         if (ch == '\n') {
+            cursorX = 0.0; // Carriage return (reset horizontal position)
+            cursorY -= lineAdvance; // Carriage return (move down to next line)
+            continue;
+         }
+
+         const GlyphCell glyph = makeGlyph(ch);
+         for (int row = 0; row < 7; ++row)
+         {
+            for (int col = 0; col < 5; ++col)
+            {
+               if (glyph.pixels[row][col])
+               {
+                  appendPixelQuad(vertices, indices, cursorX + col * cellSize, cursorY - row * cellSize, cellSize);
+               }
+            }
+         }
+
+         cursorX += charAdvance;
+      }
+   }
 } // namespace
 
 Shader::Shader(const char *vertexPath, const char *fragmentPath)
@@ -196,6 +416,11 @@ void Shader::setVec2(const std::string &name, float x, float y) const
    glUniform2f(glGetUniformLocation(ID, name.c_str()), x, y);
 }
 
+void Shader::setVec3(const std::string &name, float x, float y, float z) const
+{
+   glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z);
+}
+
 void Shader::checkCompileErrors(GLuint shader, const std::string &type)
 {
    GLint success;
@@ -232,6 +457,8 @@ Draw::Draw(Shader *shader) : m_shader(shader)
    setupRockVertices();
    setupShipVertices();
    setupDotVertices();
+   setupCircle();
+   setupText();
 }
 
 Draw::Draw()
@@ -242,6 +469,8 @@ Draw::Draw()
    setupRockVertices();
    setupShipVertices();
    setupDotVertices();
+   setupCircle();
+   setupText();
 }
 
 Draw::~Draw()
@@ -256,46 +485,80 @@ Draw::~Draw()
    glDeleteVertexArrays(1, &m_shipVAO);
    glDeleteBuffers(1, &m_shipVBO);
    glDeleteBuffers(1, &m_shipEBO);
+   glDeleteVertexArrays(1, &m_circleVAO);
+   glDeleteBuffers(1, &m_circleVBO);
+   glDeleteBuffers(1, &m_circleEBO);
+   glDeleteVertexArrays(1, &m_textVAO);
+   glDeleteBuffers(1, &m_textVBO);
+   glDeleteBuffers(1, &m_textEBO);
 }
 
-void Draw::rock(double x, double y, double angle, double scale, rocks which)
+void Draw::rock(std::pair<double, double> position, double angle, double scale,
+   std::tuple<double, double, double, double> color, rocks which)
 {
-   m_shader->setVec2("u_offset", x, y);
-   m_shader->setFloat("u_scale", static_cast<float>(scale) * (double)(which + 1));
+   m_shader->setVec2("u_offset", position.first, position.second);
+   m_shader->setFloat("u_scale", static_cast<float>(scale));
    m_shader->setFloat("u_aspect", m_aspect);
    m_shader->setFloat("u_sinAngle", static_cast<float>(std::sin(angle)));
    m_shader->setFloat("u_cosAngle", static_cast<float>(std::cos(angle)));
+   m_shader->setVec3("u_color", std::get<0>(color), std::get<1>(color), std::get<2>(color));
+   m_shader->setFloat("u_alpha", std::get<3>(color));
 
    glBindVertexArray(m_rockVAO[which]);
    glDrawElements(GL_LINES, m_rockTriCount[which], GL_UNSIGNED_INT, 0); // 12 indices for hexagon
    glBindVertexArray(0);
 }
 
-void Draw::ship(double x, double y, double angle, double scale)
+void Draw::ship(std::pair<double, double> position, double angle, double scale,
+   std::tuple<double, double, double, double> color, bool thrusting)
 {
-   m_shader->setVec2("u_offset", x, y);
+   m_shader->setVec2("u_offset", position.first, position.second);
    m_shader->setFloat("u_scale", static_cast<float>(scale));
    m_shader->setFloat("u_aspect", m_aspect);
    m_shader->setFloat("u_sinAngle", static_cast<float>(std::sin(angle)));
    m_shader->setFloat("u_cosAngle", static_cast<float>(std::cos(angle)));
+   m_shader->setVec3("u_color", std::get<0>(color), std::get<1>(color), std::get<2>(color));
+   m_shader->setFloat("u_alpha", std::get<3>(color));
 
    glBindVertexArray(m_shipVAO);
    glDrawElements(GL_LINES, m_shipTriCount, GL_UNSIGNED_INT, 0);
-   // glPointSize(5); // debug: use points instead
-   // glDrawArrays(GL_POINTS, 0, m_shipVertexCount);
    glBindVertexArray(0);
 
-   // std::cout << m_shader << '|' 
-   //    << angle << '|' 
-   //    << m_shipVAO << std::endl; 
+   if (thrusting)
+   {
+      // red
+      m_shader->setVec3("u_color", std::get<0>(red), std::get<1>(red), std::get<2>(red));
+      m_shader->setFloat("u_alpha", std::get<3>(red));
+      glBindVertexArray(m_shipThrustVAO);
+      glDrawElements(GL_LINES, m_shipThrustTriCount, GL_UNSIGNED_INT, 0);
+      glBindVertexArray(0);
+
+      // orange
+      m_shader->setVec3("u_color", std::get<0>(orange), std::get<1>(orange), std::get<2>(orange));
+      m_shader->setFloat("u_alpha", std::get<3>(orange));
+      glBindVertexArray(m_shipThrustVAO);
+      glDrawElements(GL_LINES, m_shipThrustTriCount, GL_UNSIGNED_INT, 0);
+      glBindVertexArray(0);
+
+      // yellow
+      m_shader->setVec3("u_color", std::get<0>(yellow), std::get<1>(yellow), std::get<2>(yellow));
+      m_shader->setFloat("u_alpha", std::get<3>(yellow));
+      glBindVertexArray(m_shipThrustVAO);
+      glDrawElements(GL_LINES, m_shipThrustTriCount, GL_UNSIGNED_INT, 0);
+      glBindVertexArray(0);
+   }
 }
 
-void Draw::dot(double x, double y, double scale) {
-   m_shader->setVec2("u_offset", x, y);
+void Draw::dot(std::pair<double, double> position, double scale,
+   std::tuple<double, double, double, double> color)
+{
+   m_shader->setVec2("u_offset", position.first, position.second);
    m_shader->setFloat("u_scale", static_cast<float>(scale));
    m_shader->setFloat("u_aspect", m_aspect);
    m_shader->setFloat("u_sinAngle", 0.0f);
    m_shader->setFloat("u_cosAngle", 1.0f);
+   m_shader->setVec3("u_color", std::get<0>(color), std::get<1>(color), std::get<2>(color));
+   m_shader->setFloat("u_alpha", std::get<3>(color));
 
    glPointSize(static_cast<float>(10.0 * scale));
    glBindVertexArray(m_dotVAO);
@@ -306,10 +569,9 @@ void Draw::dot(double x, double y, double scale) {
 void Draw::setupDotVertices()
 {
    std::vector<float> vertices = {
-      0.0f, 0.0f, 0.0f,
-      1.0f, 1.0f, 1.0f
-   };
-   std::vector<unsigned int> indices = { 0 };
+       0.0f, 0.0f, 0.0f,
+       1.0f, 1.0f, 1.0f};
+   std::vector<unsigned int> indices = {0};
 
    m_dotTriCount = static_cast<unsigned int>(indices.size());
 
@@ -331,19 +593,147 @@ void Draw::setupDotVertices()
    glBindVertexArray(0);
 }
 
+void Draw::circle(std::pair<double, double> position, double radius,
+   std::tuple<double, double, double, double> color)
+{
+   m_shader->setVec2("u_offset", position.first, position.second);
+   m_shader->setFloat("u_scale", static_cast<float>(radius));
+   m_shader->setFloat("u_aspect", m_aspect);
+   m_shader->setFloat("u_sinAngle", 0.0f);
+   m_shader->setFloat("u_cosAngle", 1.0f);
+   m_shader->setVec3("u_color", std::get<0>(color), std::get<1>(color), std::get<2>(color));
+   m_shader->setFloat("u_alpha", std::get<3>(color));
+
+   glBindVertexArray(m_circleVAO);
+   glDrawElements(GL_LINE_LOOP, m_circleTriCount, GL_UNSIGNED_INT, 0);
+   glBindVertexArray(0);
+}
+
+void Draw::setupCircle()
+{
+   std::vector<float> vertices;
+   std::vector<unsigned int> indices;
+
+   const int numSegments = 64;
+   for (int i = 0; i < numSegments; ++i)
+   {
+      float theta = 2.0f * M_PI * float(i) / float(numSegments);
+      float x = std::cos(theta);
+      float y = std::sin(theta);
+      vertices.push_back(x);
+      vertices.push_back(y);
+      vertices.push_back(0.0f);
+      vertices.push_back(1.0f);
+      vertices.push_back(1.0f);
+      vertices.push_back(1.0f);
+      indices.push_back(i);
+   }
+
+   m_circleTriCount = static_cast<unsigned int>(indices.size());
+
+   glGenVertexArrays(1, &m_circleVAO);
+   glGenBuffers(1, &m_circleVBO);
+   glGenBuffers(1, &m_circleEBO);
+
+   glBindVertexArray(m_circleVAO);
+   glBindBuffer(GL_ARRAY_BUFFER, m_circleVBO);
+   glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_circleEBO);
+   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+   glEnableVertexAttribArray(0);
+   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+   glEnableVertexAttribArray(1);
+   glBindVertexArray(0);
+}
+
+void Draw::text(std::pair<double, double> position, const std::string &text, double scale,
+   std::tuple<double, double, double, double> color)
+{
+   std::vector<float> vertices;
+   std::vector<unsigned int> indices;
+   appendTextGeometry(vertices, indices, text, scale * 0.08);
+
+   m_textTriCount = static_cast<unsigned int>(indices.size());
+
+   glBindVertexArray(m_textVAO);
+   glBindBuffer(GL_ARRAY_BUFFER, m_textVBO);
+   glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
+
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_textEBO);
+   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
+
+   m_shader->setVec2("u_offset", static_cast<float>(position.first), static_cast<float>(position.second));
+   m_shader->setFloat("u_scale", 1.0f);
+   m_shader->setFloat("u_aspect", m_aspect);
+   m_shader->setFloat("u_sinAngle", 0.0f);
+   m_shader->setFloat("u_cosAngle", 1.0f);
+   m_shader->setVec3("u_color", std::get<0>(color), std::get<1>(color), std::get<2>(color));
+   m_shader->setFloat("u_alpha", std::get<3>(color));
+
+   glLineWidth(1.5f);
+   glDrawElements(GL_TRIANGLES, m_textTriCount, GL_UNSIGNED_INT, 0);
+   glBindVertexArray(0);
+}
+
+void Draw::setupText()
+{
+   std::vector<float> vertices;
+   std::vector<unsigned int> indices;
+
+   m_textTriCount = 0;
+
+   glGenVertexArrays(1, &m_textVAO);
+   glGenBuffers(1, &m_textVBO);
+   glGenBuffers(1, &m_textEBO);
+
+   glBindVertexArray(m_textVAO);
+   glBindBuffer(GL_ARRAY_BUFFER, m_textVBO);
+   glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
+
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_textEBO);
+   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
+
+   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+   glEnableVertexAttribArray(0);
+   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+   glEnableVertexAttribArray(1);
+   glBindVertexArray(0);
+}
+
 void Draw::setAspectRatio(float aspect)
 {
    m_aspect = aspect;
 }
 
-void Draw::setupRockVertices() {
-   for(int i = 0; i < 3; i++) {
+void Draw::setupRockVertices()
+{
+   for (size_t i = 0; i < 3; i++)
+   {
       std::vector<double> vertices;
       std::vector<unsigned int> indices;
-      
-      loadShape(vertices, indices, resolveAssetPath(rockFiles[i]));
-      centerVertices(vertices);
-      
+
+      try
+      {
+         loadShape(vertices, indices, resolveAssetPath(rockFiles[i]));
+         centerVertices(vertices);
+      }
+      catch (...)
+      {
+         std::cerr << "Failed to load rock shape: " << rockFiles[i] << "\n";
+         constexpr double rockFallbackVerts[] = {
+            0.0, 0.2, 0.0, 0.6, 0.6, 0.6,
+            0.17, 0.1, 0.0, 0.6, 0.6, 0.6,
+            0.17, -0.1, 0.0, 0.6, 0.6, 0.6,
+            0.0, -0.2, 0.0, 0.6, 0.6, 0.6,
+            -0.17, -0.1, 0.0, 0.6, 0.6, 0.6,
+            -0.17, 0.1, 0.0, 0.6, 0.6, 0.6};
+         constexpr unsigned int rockFallbackInds[] = {
+            0, 1, 5, 1, 2, 5, 2, 3, 4, 2, 4, 5};
+      }
+
       m_rockTriCount[i] = indices.size();
       std::vector<float> floatVerts(vertices.begin(), vertices.end());
 
@@ -354,7 +744,7 @@ void Draw::setupRockVertices() {
       glBindVertexArray(m_rockVAO[i]);
       glBindBuffer(GL_ARRAY_BUFFER, m_rockVBO[i]);
       glBufferData(GL_ARRAY_BUFFER, floatVerts.size() * sizeof(float), floatVerts.data(), GL_STATIC_DRAW);
-      
+
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_rockEBO[i]);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
@@ -371,18 +761,39 @@ void Draw::setupShipVertices()
    std::vector<double> verts;
    std::vector<unsigned int> indices;
 
-   try {
-      loadShape(verts, indices, resolveAssetPath("assets/shapes/lander.txt"));
+   try
+   {
+      loadShape(verts, indices, resolveAssetPath("assets/shapes/ship.txt"));
       centerVertices(verts);
    }
-   catch (...) {
+   catch (...)
+   {
       std::cerr << "using fallback ship verts\n";
-      
+
+      constexpr double shipFallbackVerts[] = {
+          // Line A
+          -1.0f / 25.0f, 22.0f / 25.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+          1.0f / 25.0f, 22.0f / 25.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+          // Line A2
+          0.0f / 25.0f, 16.0f / 25.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+          0.0f / 25.0f, 22.0f / 25.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+          // Base Polygon (Triangulated)
+          -15.0f / 25.0f, 0.0f / 25.0f, 0.0f, 0.5f, 0.5f, 0.5f,
+          15.0f / 25.0f, 0.0f / 25.0f, 0.0f, 0.5f, 0.5f, 0.5f,
+          15.0f / 25.0f, -10.0f / 25.0f, 0.0f, 0.5f, 0.5f, 0.5f,
+          -15.0f / 25.0f, -10.0f / 25.0f, 0.0f, 0.5f, 0.5f, 0.5f};
+      constexpr unsigned int shipFallbackInds[] = {
+          0, 1,            // Line 1
+          2, 3,            // Line 2
+          4, 5, 6, 4, 6, 7 // Poly
+      };
+
       verts.assign(std::begin(shipFallbackVerts), std::end(shipFallbackVerts));
       indices.assign(std::begin(shipFallbackInds), std::end(shipFallbackInds));
    }
 
-   if (verts.empty() || indices.empty()) {
+   if (verts.empty() || indices.empty())
+   {
       throw std::runtime_error("Vertices or indices are empty; failed to generate shape data.");
    }
 
@@ -405,21 +816,74 @@ void Draw::setupShipVertices()
    glEnableVertexAttribArray(1);
    glBindVertexArray(0);
 
-   m_shipVertexCount = vertices.size() / 6;   // 6 floats per vertex
+   m_shipVertexCount = vertices.size() / 6; // 6 floats per vertex
 }
 
-void Draw::pushVertex(std::vector<double>& verts, double x, double y) {
+void Draw::setupShipThrustVertices() {
+   // set up vertices
+   std::vector<double> verts;
+   std::vector<unsigned int> indices;
+
+   try
+   {
+      loadShape(verts, indices, resolveAssetPath("assets/shapes/shipThrust.txt"));
+      centerVertices(verts);
+   }
+   catch (...)
+   {
+      std::cerr << "using fallback ship thrust verts\n";
+      constexpr double shipThrustFallbackVerts[] = {
+          // Line A
+          -1.0f / 25.0f, -10.0f / 25.0f, 0.0f, 1.0f, 0.5f, 0.0f,
+          1.0f / 25.0f, -10.0f / 25.0f, 0.0f, 1.0f, 0.5f, 0.0f,
+      };
+      constexpr unsigned int shipThrustFallbackInds[] = {
+          0, 1
+      };
+
+      verts.assign(std::begin(shipThrustFallbackVerts), std::end(shipThrustFallbackVerts));
+      indices.assign(std::begin(shipThrustFallbackInds), std::end(shipThrustFallbackInds));
+   }
+
+   if (verts.empty() || indices.empty())
+   {
+      throw std::runtime_error("Vertices or indices are empty; failed to generate shape data.");
+   }
+
+   std::vector<float> vertices(verts.begin(), verts.end());
+   m_shipThrustTriCount = indices.size();
+
+   glGenVertexArrays(1, &m_shipThrustVAO);
+   glGenBuffers(1, &m_shipThrustVBO);
+   glGenBuffers(1, &m_shipThrustEBO);
+
+   glBindVertexArray(m_shipThrustVAO);
+   glBindBuffer(GL_ARRAY_BUFFER, m_shipThrustVBO);
+   glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_shipThrustEBO);
+   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+   glEnableVertexAttribArray(0);
+   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+   glEnableVertexAttribArray(1);
+   glBindVertexArray(0);
+}
+
+void Draw::pushVertex(std::vector<double> &verts, double x, double y)
+{
    verts.push_back(x / 25.0); // Normalize by SVG viewBox scale
    verts.push_back(y / 25.0); // scale is (1, -1)
-   verts.push_back(0.0); // Z
-   verts.push_back(1.0); // R (White)
-   verts.push_back(1.0); // G
-   verts.push_back(1.0); // B
+   verts.push_back(0.0);      // Z
+   verts.push_back(1.0);      // R (White)
+   verts.push_back(1.0);      // G
+   verts.push_back(1.0);      // B
 }
 
-void Draw::centerVertices(std::vector<double>& vertices)
+void Draw::centerVertices(std::vector<double> &vertices)
 {
-   if (vertices.empty()) {
+   if (vertices.empty())
+   {
       return;
    }
 
@@ -427,7 +891,8 @@ void Draw::centerVertices(std::vector<double>& vertices)
    double sumX = 0.0;
    double sumY = 0.0;
 
-   for (size_t i = 0; i < vertexCount; ++i) {
+   for (size_t i = 0; i < vertexCount; ++i)
+   {
       const size_t base = i * 6;
       sumX += vertices[base];
       sumY += vertices[base + 1];
@@ -436,28 +901,35 @@ void Draw::centerVertices(std::vector<double>& vertices)
    const double centerX = sumX / static_cast<double>(vertexCount);
    const double centerY = sumY / static_cast<double>(vertexCount);
 
-   for (size_t i = 0; i < vertexCount; ++i) {
+   for (size_t i = 0; i < vertexCount; ++i)
+   {
       const size_t base = i * 6;
       vertices[base] -= centerX;
       vertices[base + 1] -= centerY;
    }
 }
 
-void Draw::loadShape(std::vector<double>& vertices, std::vector<unsigned int>& indices, std::string path) {
+void Draw::loadShape(std::vector<double> &vertices, std::vector<unsigned int> &indices, std::string path)
+{
    std::ifstream file(path);
-   if (file.is_open()) {
+   if (file.is_open())
+   {
       std::string line;
       unsigned int currentIndex = 0;
-      
-      while (std::getline(file, line)) {
-         if (!line.empty() && line[0] != '#') {
+
+      while (std::getline(file, line))
+      {
+         if (!line.empty() && line[0] != '#')
+         {
             std::istringstream iss(line);
             std::string type;
             iss >> type;
-            
-            if (type == "LINE") {
+
+            if (type == "LINE")
+            {
                double x1, y1, x2, y2;
-               if (iss >> x1 >> y1 >> x2 >> y2) {
+               if (iss >> x1 >> y1 >> x2 >> y2)
+               {
                   pushVertex(vertices, x1, y1);
                   indices.push_back(currentIndex++);
                   pushVertex(vertices, x2, y2);
@@ -465,16 +937,19 @@ void Draw::loadShape(std::vector<double>& vertices, std::vector<unsigned int>& i
                }
             }
 
-            else if (type == "POLY") {
+            else if (type == "POLY")
+            {
                std::vector<std::pair<double, double>> pts;
                double px, py;
                while (iss >> px >> py)
                   pts.push_back({px, py});
 
-               if (pts.size() >= 3) {
-                  for (size_t i = 0; i < pts.size(); ++i) {
+               if (pts.size() >= 3)
+               {
+                  for (size_t i = 0; i < pts.size(); ++i)
+                  {
                      size_t next = (i + 1) % pts.size();
-                     pushVertex(vertices, pts[i].first,    pts[i].second);
+                     pushVertex(vertices, pts[i].first, pts[i].second);
                      pushVertex(vertices, pts[next].first, pts[next].second);
                      indices.push_back(currentIndex++);
                      indices.push_back(currentIndex++);
@@ -488,7 +963,8 @@ void Draw::loadShape(std::vector<double>& vertices, std::vector<unsigned int>& i
       file.close();
    }
 
-   else {
+   else
+   {
       throw std::runtime_error("Warning: Could not load {" + path + "}. Using hardcoded fallback.\n");
    }
 }
@@ -514,8 +990,8 @@ int run(UI &ui, Game &game, Draw &draw)
       int framebufferHeight = 0;
       glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
       const float aspect = (framebufferWidth > 0)
-                              ? static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth)
-                              : 0.75f;
+                               ? static_cast<float>(framebufferHeight) / static_cast<float>(framebufferWidth)
+                               : 0.75f;
       draw.setAspectRatio(aspect);
 
       // --- Student Logic ---
