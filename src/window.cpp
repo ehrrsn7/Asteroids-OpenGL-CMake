@@ -22,7 +22,7 @@ Window::Window(std::pair<int, int> size, const std::string &title,
 
    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
@@ -309,7 +309,7 @@ namespace
       indices.push_back(static_cast<unsigned int>(base + 3));
    }
 
-   void appendTextGeometry(std::vector<float> &vertices, std::vector<unsigned int> &indices, const std::string &text, double cellSize)
+   double appendTextGeometry(std::vector<float> &vertices, std::vector<unsigned int> &indices, const std::string &text, double cellSize)
    {
       const double charAdvance = cellSize * 6.0;
       double cursorX = 0.0;
@@ -337,6 +337,8 @@ namespace
 
          cursorX += charAdvance;
       }
+
+      return cursorX * 0.72;
    }
 } // namespace
 
@@ -656,11 +658,11 @@ void Draw::setupCircle()
 }
 
 void Draw::text(std::pair<double, double> position, const std::string &text, double scale,
-   std::tuple<double, double, double, double> color)
+   std::tuple<double, double, double, double> color, align which, style textStyle)
 {
    std::vector<float> vertices;
    std::vector<unsigned int> indices;
-   appendTextGeometry(vertices, indices, text, scale * 0.08);
+   double textWidth = appendTextGeometry(vertices, indices, text, scale * 0.08);
 
    m_textTriCount = static_cast<unsigned int>(indices.size());
 
@@ -671,7 +673,24 @@ void Draw::text(std::pair<double, double> position, const std::string &text, dou
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_textEBO);
    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_DYNAMIC_DRAW);
 
-   m_shader->setVec2("u_offset", static_cast<float>(position.first), static_cast<float>(position.second));
+   // alignment offset
+   double xOffsetAdjustment = 0.0;
+   switch (which)
+   {
+      case CENTER:
+         xOffsetAdjustment = textWidth * 0.5;
+         break;
+      case RIGHT:
+         xOffsetAdjustment = textWidth;
+         break;
+      case LEFT:
+      default:
+         xOffsetAdjustment = 0.0;
+         break;
+   }
+
+   // Apply adjusted position
+   m_shader->setVec2("u_offset", static_cast<float>(position.first) - xOffsetAdjustment, static_cast<float>(position.second));
    m_shader->setFloat("u_scale", 1.0f);
    m_shader->setFloat("u_aspect", m_aspect);
    m_shader->setFloat("u_sinAngle", 0.0f);
@@ -680,6 +699,15 @@ void Draw::text(std::pair<double, double> position, const std::string &text, dou
    m_shader->setFloat("u_alpha", std::get<3>(color));
 
    glLineWidth(1.5f);
+   glDrawElements(GL_TRIANGLES, m_textTriCount, GL_UNSIGNED_INT, 0);
+   glBindVertexArray(0);
+
+   // styles:
+   // enum style { NONE, UNDERLINE, BOLD, ITALIC };
+   // Handle styles via uniforms or post-geometry modifications
+   glLineWidth(textStyle == BOLD ? 2.5f : 1.5f); // Example: Make lines thicker for BOLD
+   // TODO UNDERLINE
+   // TODO ITALIC
    glDrawElements(GL_TRIANGLES, m_textTriCount, GL_UNSIGNED_INT, 0);
    glBindVertexArray(0);
 }

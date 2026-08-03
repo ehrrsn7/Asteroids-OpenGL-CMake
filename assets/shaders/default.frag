@@ -1,4 +1,4 @@
-#version 430 compatibility
+#version 430 core
 out vec4 FragColor;
 
 // 1. Change vec2 to vec3

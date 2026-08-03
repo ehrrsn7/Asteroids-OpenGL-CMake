@@ -97,8 +97,11 @@ public:
       std::tuple<double, double, double, double> color = white);
    void circle(std::pair<double, double> position, double radius,
       std::tuple<double, double, double, double> color = white);
+   enum align { LEFT, CENTER, RIGHT };
+   enum style { NONE, UNDERLINE, BOLD, ITALIC };
    void text(std::pair<double, double> position, const std::string &text, double size,
-      std::tuple<double, double, double, double> color = white);
+      std::tuple<double, double, double, double> color = white, 
+      align which = LEFT, style textStyle = NONE);
 
    void setAspectRatio(float aspect);
    Shader* getShader() { return m_shader; }
