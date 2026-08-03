@@ -1,4 +1,4 @@
-#version 330 core
+#version 430 compatibility
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aColor;
 
@@ -9,7 +9,7 @@ uniform float u_scale;
 uniform float u_aspect;
 uniform float u_sinAngle;
 uniform float u_cosAngle;
-uniform vec2 u_color;
+uniform vec3 u_color;
 uniform float u_alpha;
 
 void main() {
@@ -29,5 +29,5 @@ void main() {
    vec2 finalPos = rotatedPos + u_offset;
    gl_Position = vec4(finalPos, 0.0, 1.0);
 
-   vColor = vec4(aColor * vec3(u_color.x, u_color.y, 1.0), u_alpha);
+   vColor = vec4(aColor * vec3(u_color.x, u_color.y, u_color.z), u_alpha);
 }

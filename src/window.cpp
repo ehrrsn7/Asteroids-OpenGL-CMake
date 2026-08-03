@@ -21,8 +21,8 @@ Window::Window(std::pair<int, int> size, const std::string &title,
    }
 
    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 #ifdef __APPLE__
    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
@@ -49,16 +49,22 @@ Window::Window(std::pair<int, int> size, const std::string &title,
       return;
    }
 
-   glViewport(0, 0, size.first, size.second);
+   int bufferWidth, bufferHeight;
+   // 1. Changed "gl" to "glfw"
+   glfwGetFramebufferSize(m_window, &bufferWidth, &bufferHeight); 
+   
+   // 2. Changed to use the physical buffer dimensions
+   glViewport(0, 0, bufferWidth, bufferHeight); 
+   
    glClearColor(
       std::get<0>(bgColor), 
       std::get<1>(bgColor), 
       std::get<2>(bgColor), 
       std::get<3>(bgColor));
 
-   // Framebuffer resize callback
+   // 3. This stays exactly the same!
    glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow *, int w, int h)
-                                  { glViewport(0, 0, w, h); });
+                                 { glViewport(0, 0, w, h); });
 }
 
 Window::~Window()

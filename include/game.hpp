@@ -72,17 +72,20 @@ public:
       shipRotation = 0.0;
       if (ui.isKeyDown(GLFW_KEY_LEFT) || ui.isKeyDown(GLFW_KEY_S))
       { // Left or 'S' key
-         shipRotation -= SHIP_ROTATION_SPEED;
+         if (shipHitboxColor != Draw::red)
+            shipRotation -= SHIP_ROTATION_SPEED;
       }
       if (ui.isKeyDown(GLFW_KEY_RIGHT) || ui.isKeyDown(GLFW_KEY_F))
       { // Right or 'F' key
-         shipRotation += SHIP_ROTATION_SPEED;
+         if (shipHitboxColor != Draw::red)
+            shipRotation += SHIP_ROTATION_SPEED;
       }
 
       // Set ship thrust based on up input
       if (ui.isKeyDown(GLFW_KEY_UP) || ui.isKeyDown(GLFW_KEY_E))
       { // Up or 'E' key
-         shipThrust = 1.0;
+         if (shipHitboxColor != Draw::red)
+            shipThrust = 1.0;
       }
       else
          shipThrust = 0.0;
@@ -90,22 +93,25 @@ public:
       // Fire Laser
       if (ui.isKeyDown(GLFW_KEY_SPACE) && laserCooldown <= 0.0)
       { // Space Key and laser cooldown check
-         laserPositions.push_back(std::pair<double, double>{
-             // ship position + offset along the ship's facing direction
-             shipPosition.first + SHIP_RADIUS * std::cos(shipAngle),
-             shipPosition.second + SHIP_RADIUS * std::sin(shipAngle)});
-         laserVelocities.push_back(std::pair<double, double>{
-             // velocity along the ship's facing direction + ship's current velocity
-             std::cos(shipAngle) * LASER_SPEED + shipVelocity.first,
-             std::sin(shipAngle) * LASER_SPEED + shipVelocity.second});
-         // Reset laser cooldown
-         laserHitboxColors.push_back(Draw::green);
-         laserCooldown = 1 / FIRE_RATE;
-
-         if (laserPositions.size() != laserVelocities.size() ||
-             laserPositions.size() != laserHitboxColors.size())
-         {
-            throw std::runtime_error("Laser state vectors out of sync.");
+         if (shipHitboxColor != Draw::red)
+         { // not game over
+            laserPositions.push_back(std::pair<double, double>{
+                // ship position + offset along the ship's facing direction
+                shipPosition.first + SHIP_RADIUS * std::cos(shipAngle),
+                shipPosition.second + SHIP_RADIUS * std::sin(shipAngle)});
+            laserVelocities.push_back(std::pair<double, double>{
+                // velocity along the ship's facing direction + ship's current velocity
+                std::cos(shipAngle) * LASER_SPEED + shipVelocity.first,
+                std::sin(shipAngle) * LASER_SPEED + shipVelocity.second});
+            // Reset laser cooldown
+            laserHitboxColors.push_back(Draw::green);
+            laserCooldown = 1 / FIRE_RATE;
+   
+            if (laserPositions.size() != laserVelocities.size() ||
+                laserPositions.size() != laserHitboxColors.size())
+            {
+               throw std::runtime_error("Laser state vectors out of sync.");
+            }
          }
       }
 
@@ -245,7 +251,7 @@ private:
    std::vector<std::tuple<double, double, double, double>> laserHitboxColors;
 
    // hitboxes
-   bool showHud{false};
+   bool showHud{true};
    double hitboxCooldown{0.0};
 
    // private methods

@@ -95,3 +95,25 @@ cmake --build build --config Debug
 
 The executable requires the GLFW runtime DLL to be available. The MSYS2 install places it in the MSYS2 runtime folders, so if you get an error about `glfw3.dll` not being found, make sure the relevant MSYS2 binary directory is on your `PATH` (for example, `C:\msys64\ucrt64\bin`).
 
+### Chromebook Rendering Issues
+
+If you are running a chromebook IDE with penguin in the Crostini container, you may encounter a buffer-swapping bug (values update normally in the backend but visually your objects might get stuck erratically swapping between two static frames and they won't update their position until you resize the screen). This happens if you are stuck in software rendering mode.
+
+Example lines from 'glxinfo -B' command:
+> Device: llvmpipe (LLVM 19.1.7, 256 bits)
+>
+> Accelerated: no
+
+How to fix this:
+1. Open a new tab in your Chromebook's standard Chrome browser.
+1. Navigate to chrome://flags.
+1. Type Crostini GPU Support into the search box.
+1. Change the dropdown for that flag to Enabled.
+1. Completely restart your Chromebook (a full device reboot, not just closing the Linux container).
+
+After restarting, run 
+
+'''
+sudo usermod -aG video $USER
+sudo usermod -aG render $USER
+'''
