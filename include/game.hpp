@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath> // Make sure this is included for fmod if needed, or just use standard math
+#define _USE_MATH_DEFINES
 #include <vector>
 #include "window.hpp"
 
