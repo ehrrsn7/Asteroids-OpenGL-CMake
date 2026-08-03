@@ -87,9 +87,21 @@ public:
    // High-level drawing functions
    enum rocks { SMALL_ROCK, NORMAL_ROCK, LARGE_ROCK }; // match rockFiles[] below
    void rock(double x, double y, double angle, double scale, rocks which = NORMAL_ROCK);
-   void ship(double x, double y, double angle, double scale);
-   void setAspectRatio(float aspect);
+   void rock(std::pair<double, double> position, double angle, double scale, rocks which = NORMAL_ROCK) {
+      rock(position.first, position.second, angle, scale, which);
+   }
 
+   void ship(double x, double y, double angle, double scale = 0.1);
+   void ship(std::pair<double, double> position, double angle, double scale = 0.1) {
+      ship(position.first, position.second, angle, scale);
+   }
+
+   void dot(double x, double y, double scale);
+   void dot(std::pair<double, double> position, double scale) {
+      dot(position.first, position.second, scale);
+   }
+   
+   void setAspectRatio(float aspect);
    Shader* getShader() { return m_shader; }
 
 private:
@@ -113,6 +125,10 @@ private:
       "assets/shapes/rockNormal.txt", 
       "assets/shapes/rockLarge.txt"
    };
+
+   // OpenGL IDs for simple dot rendering
+   GLuint m_dotVAO, m_dotVBO, m_dotEBO;
+   unsigned int m_dotTriCount{0};
 
    // OpenGL IDs for the Ship
    GLuint m_shipVAO, m_shipVBO, m_shipEBO;
@@ -141,6 +157,7 @@ private:
    // init functions to set up the vertex data
    void setupRockVertices();
    void setupShipVertices();
+   void setupDotVertices();
    void loadShape(std::vector<double>& vertices, std::vector<unsigned int>& indices, std::string path);
    void pushVertex(std::vector<double>& verts, double x, double y);
    void centerVertices(std::vector<double>& vertices);

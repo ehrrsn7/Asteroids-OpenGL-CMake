@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <filesystem>
 
 #include "window.hpp"
 #include "game.hpp" // Required so run() can call game.input, game.update, and game.output
@@ -37,6 +38,7 @@ Window::Window(int width, int height, const std::string &title)
 
    glfwMakeContextCurrent(m_window);
    glfwSwapInterval(1); // Lock to vsync so frame timing (dt) is stable
+   glfwSetWindowShouldClose(m_window, GLFW_FALSE);
 
    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
    {
@@ -91,6 +93,27 @@ void UI::closeWindow()
 }
 
 // --- Shader IMPLEMENTATION ---
+namespace {
+std::string resolveAssetPath(const std::string &path)
+{
+   namespace fs = std::filesystem;
+   if (fs::exists(path))
+      return path;
+
+   const fs::path executablePath = fs::current_path();
+   const fs::path candidate = executablePath / path;
+   if (fs::exists(candidate))
+      return candidate.string();
+
+   const fs::path buildDir = executablePath.parent_path();
+   const fs::path buildCandidate = buildDir / path;
+   if (fs::exists(buildCandidate))
+      return buildCandidate.string();
+
+   return path;
+}
+} // namespace
+
 Shader::Shader(const char *vertexPath, const char *fragmentPath)
 {
    std::string vertexCode, fragmentCode;
@@ -100,10 +123,13 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath)
    vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
    fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
+   const std::string resolvedVertexPath = resolveAssetPath(vertexPath);
+   const std::string resolvedFragmentPath = resolveAssetPath(fragmentPath);
+
    try
    {
-      vShaderFile.open(vertexPath);
-      fShaderFile.open(fragmentPath);
+      vShaderFile.open(resolvedVertexPath);
+      fShaderFile.open(resolvedFragmentPath);
 
       std::stringstream vShaderStream, fShaderStream;
       vShaderStream << vShaderFile.rdbuf();
@@ -118,7 +144,7 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath)
    catch (const std::ifstream::failure &e)
    {
       std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: "
-                << vertexPath << " or " << fragmentPath << "\n";
+                << resolvedVertexPath << " or " << resolvedFragmentPath << "\n";
    }
 
    const char *vShaderCode = vertexCode.c_str();
@@ -205,6 +231,7 @@ Draw::Draw(Shader *shader) : m_shader(shader)
 {
    setupRockVertices();
    setupShipVertices();
+   setupDotVertices();
 }
 
 Draw::Draw()
@@ -214,6 +241,7 @@ Draw::Draw()
 
    setupRockVertices();
    setupShipVertices();
+   setupDotVertices();
 }
 
 Draw::~Draw()
@@ -222,6 +250,9 @@ Draw::~Draw()
    glDeleteVertexArrays(3, m_rockVAO);
    glDeleteBuffers(3, m_rockVBO);
    glDeleteBuffers(3, m_rockEBO);
+   glDeleteVertexArrays(1, &m_dotVAO);
+   glDeleteBuffers(1, &m_dotVBO);
+   glDeleteBuffers(1, &m_dotEBO);
    glDeleteVertexArrays(1, &m_shipVAO);
    glDeleteBuffers(1, &m_shipVBO);
    glDeleteBuffers(1, &m_shipEBO);
@@ -230,7 +261,7 @@ Draw::~Draw()
 void Draw::rock(double x, double y, double angle, double scale, rocks which)
 {
    m_shader->setVec2("u_offset", x, y);
-   m_shader->setFloat("u_scale", static_cast<float>(scale));
+   m_shader->setFloat("u_scale", static_cast<float>(scale) * (double)(which + 1));
    m_shader->setFloat("u_aspect", m_aspect);
    m_shader->setFloat("u_sinAngle", static_cast<float>(std::sin(angle)));
    m_shader->setFloat("u_cosAngle", static_cast<float>(std::cos(angle)));
@@ -259,6 +290,47 @@ void Draw::ship(double x, double y, double angle, double scale)
    //    << m_shipVAO << std::endl; 
 }
 
+void Draw::dot(double x, double y, double scale) {
+   m_shader->setVec2("u_offset", x, y);
+   m_shader->setFloat("u_scale", static_cast<float>(scale));
+   m_shader->setFloat("u_aspect", m_aspect);
+   m_shader->setFloat("u_sinAngle", 0.0f);
+   m_shader->setFloat("u_cosAngle", 1.0f);
+
+   glPointSize(static_cast<float>(10.0 * scale));
+   glBindVertexArray(m_dotVAO);
+   glDrawElements(GL_POINTS, m_dotTriCount, GL_UNSIGNED_INT, 0);
+   glBindVertexArray(0);
+}
+
+void Draw::setupDotVertices()
+{
+   std::vector<float> vertices = {
+      0.0f, 0.0f, 0.0f,
+      1.0f, 1.0f, 1.0f
+   };
+   std::vector<unsigned int> indices = { 0 };
+
+   m_dotTriCount = static_cast<unsigned int>(indices.size());
+
+   glGenVertexArrays(1, &m_dotVAO);
+   glGenBuffers(1, &m_dotVBO);
+   glGenBuffers(1, &m_dotEBO);
+
+   glBindVertexArray(m_dotVAO);
+   glBindBuffer(GL_ARRAY_BUFFER, m_dotVBO);
+   glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_dotEBO);
+   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+   glEnableVertexAttribArray(0);
+   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+   glEnableVertexAttribArray(1);
+   glBindVertexArray(0);
+}
+
 void Draw::setAspectRatio(float aspect)
 {
    m_aspect = aspect;
@@ -269,7 +341,7 @@ void Draw::setupRockVertices() {
       std::vector<double> vertices;
       std::vector<unsigned int> indices;
       
-      loadShape(vertices, indices, rockFiles[i]);
+      loadShape(vertices, indices, resolveAssetPath(rockFiles[i]));
       centerVertices(vertices);
       
       m_rockTriCount[i] = indices.size();
@@ -300,7 +372,7 @@ void Draw::setupShipVertices()
    std::vector<unsigned int> indices;
 
    try {
-      loadShape(verts, indices, "assets/shapes/lander.txt");
+      loadShape(verts, indices, resolveAssetPath("assets/shapes/lander.txt"));
       centerVertices(verts);
    }
    catch (...) {
@@ -427,6 +499,8 @@ int run(UI &ui, Game &game, Draw &draw)
       return -1;
 
    GLFWwindow *window = ui.getNativeWindow();
+   glfwSetWindowShouldClose(window, GLFW_FALSE);
+
    while (!ui.shouldClose())
    {
       double dt = ui.updateDeltaTime();
