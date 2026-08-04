@@ -22,7 +22,7 @@ public:
    static constexpr double ROCK_SPEED = 0.3;                       // units per second
    static constexpr double SCREEN_BUFFER = 0.035;
    static constexpr double UI_TOGGLE_RATE = 5.0; // toggles per second
-   static constexpr double LASER_SIZE = 0.065; // units long
+   static constexpr double LASER_SIZE = 0.065;   // units long
 
    Game()
    {
@@ -79,7 +79,7 @@ public:
       rockTypes.push_back(Draw::LARGE_ROCK);
       rockRadii.push_back(0.2);
       rockHitboxColors.push_back(Draw::green);
-   } 
+   }
 
    // 1. Input completely encapsulated by the UI class
    void input(UI &ui)
@@ -113,7 +113,6 @@ public:
          { // menu is open
             uiCooldown = 1.0 / UI_TOGGLE_RATE;
             // menu action
-
          }
          else if (shipHitboxColor != Draw::red)
          { // above if and ship is alive
@@ -126,7 +125,6 @@ public:
          { // menu is open
             uiCooldown = 1.0 / UI_TOGGLE_RATE;
             // menu action
-            
          }
          else if (shipHitboxColor != Draw::red)
          { // above if and ship is alive
@@ -161,7 +159,7 @@ public:
          }
          else if (shipHitboxColor != Draw::red)
          { // above if and ship is alive
-            // no game action for down key
+           // no game action for down key
          }
       }
 
@@ -173,22 +171,22 @@ public:
             int unpaused = -1; // Represents "inactive" menu
 
             // Find iterators safely
-            auto resumeIt  = std::find(menuOptions.begin(), menuOptions.end(), "Resume");
-            auto playIt    = std::find(menuOptions.begin(), menuOptions.end(), "Play");
+            auto resumeIt = std::find(menuOptions.begin(), menuOptions.end(), "Resume");
+            auto playIt = std::find(menuOptions.begin(), menuOptions.end(), "Play");
             auto restartIt = std::find(menuOptions.begin(), menuOptions.end(), "Restart");
-            auto quitIt    = std::find(menuOptions.begin(), menuOptions.end(), "Quit");
+            auto quitIt = std::find(menuOptions.begin(), menuOptions.end(), "Quit");
             auto currentIt = menuOptions.begin() + menuIndex;
 
             if (menuIndex == unpaused)
             {
-               throw std::runtime_error("Menu context action when menu not active");               
+               throw std::runtime_error("Menu context action when menu not active");
             }
 
             // 1. Check "Resume" or "Play" (Verify iterator is valid BEFORE checking match)
-            if ((resumeIt != menuOptions.end() && currentIt == resumeIt) || 
-               (playIt != menuOptions.end() && currentIt == playIt))
+            if ((resumeIt != menuOptions.end() && currentIt == resumeIt) ||
+                (playIt != menuOptions.end() && currentIt == playIt))
             {
-               if (rockPositions.size() > 0  && shipHitboxColor == Draw::green) 
+               if (rockPositions.size() > 0 && shipHitboxColor == Draw::green)
                { // The game is ready to play
                   menuIndex = unpaused;
                }
@@ -241,10 +239,10 @@ public:
             // Reset laser cooldown
             laserHitboxColors.push_back(Draw::green);
             laserCooldown = 1 / FIRE_RATE;
-   
+
             if (laserPositions.size() != laserVelocities.size() ||
-               laserPositions.size() != laserHitboxColors.size() || 
-               laserPositions.size() != laserAngles.size())
+                laserPositions.size() != laserHitboxColors.size() ||
+                laserPositions.size() != laserAngles.size())
             {
                throw std::runtime_error("Laser state vectors out of sync.");
             }
@@ -269,11 +267,11 @@ public:
       if (menuIndex < 0)
       { // game is un paused
          shipAngle += shipRotation * dt;
-         
+
          // Update ship velocity based on thrust and angle
          shipVelocity.first += shipThrust * std::cos(shipAngle) * dt;
          shipVelocity.second += shipThrust * std::sin(shipAngle) * dt;
-   
+
          // Update ship position based on velocity
          shipPosition.first += shipVelocity.first * dt;
          shipPosition.second += shipVelocity.second * dt;
@@ -371,31 +369,34 @@ public:
 
          // play button
          bool playEnabled = rockPositions.size() > 0 && shipHitboxColor == Draw::green;
-         draw.text({0.0, -0.3}, 
-            true ? "Resume" : "Play", 
-            0.12, 
-            playEnabled ? draw.white : draw.gray, 
-            draw.CENTER, 
-            true ? draw.UNDERLINE : draw.ITALIC);
-         if (menuIndex == 0) draw.rectangle({0.0, -0.35}, {0.5, 0.15}, 0.0, {1.0, 1.0, 1.0, 0.1});
+         draw.text({0.0, -0.3},
+                   true ? "Resume" : "Play",
+                   0.12,
+                   playEnabled ? draw.white : draw.gray,
+                   draw.CENTER,
+                   true ? draw.UNDERLINE : draw.ITALIC);
+         if (menuIndex == 0)
+            draw.rectangle({0.0, -0.3}, {0.5, 0.15}, 0.0, {1.0, 1.0, 1.0, 0.1});
 
          // restart button
          bool restartEnabled = rockPositions.size() <= 0 || shipHitboxColor != Draw::green;
          draw.text({0.0, -0.5}, "Restart",
-            0.12, 
-            restartEnabled ? draw.white : draw.gray, 
-            draw.CENTER, 
-            true ? draw.UNDERLINE : draw.ITALIC);
-         if (menuIndex == 1) draw.rectangle({0.0, -0.55}, {0.5, 0.15}, 0.0, {1.0, 1.0, 1.0, 0.1});
+                   0.12,
+                   restartEnabled ? draw.white : draw.gray,
+                   draw.CENTER,
+                   true ? draw.UNDERLINE : draw.ITALIC);
+         if (menuIndex == 1)
+            draw.rectangle({0.0, -0.5}, {0.5, 0.15}, 0.0, {1.0, 1.0, 1.0, 0.1});
 
          // quit button
          bool quitEnabled = true;
          draw.text({0.0, -0.7}, "Quit",
-            0.12, 
-            quitEnabled ? draw.white : draw.gray, 
-            draw.CENTER, 
-            true ? draw.UNDERLINE : draw.ITALIC);
-         if (menuIndex == 2) draw.rectangle({0.0, -0.75}, {0.5, 0.15}, 0.0, {1.0, 1.0, 1.0, 0.1});
+                   0.12,
+                   quitEnabled ? draw.white : draw.gray,
+                   draw.CENTER,
+                   true ? draw.UNDERLINE : draw.ITALIC);
+         if (menuIndex == 2)
+            draw.rectangle({0.0, -0.7}, {0.5, 0.15}, 0.0, {1.0, 1.0, 1.0, 0.1});
       }
    }
 
@@ -429,12 +430,11 @@ private:
 
    // game state ui
    std::vector<std::string> menuOptions{
-      "Play",
-      "Restart", 
-      // "High Scores",
-      // "Options",
-      "Quit"
-   };
+       "Play",
+       "Restart",
+       // "High Scores",
+       // "Options",
+       "Quit"};
    int menuIndex{0}; // selected menu option (-1 means resume)
    bool showHud{false};
    double uiCooldown{0.0};
@@ -484,7 +484,7 @@ private:
                std::cout << rockPositions.size() << std::endl;
 
                if (rockPositions.size() <= 1)
-               { // game won
+               {                 // game won
                   menuIndex = 0; // pause the game
                }
             }
@@ -496,7 +496,7 @@ private:
       {
          if (collision(rockPositions[i], rockRadii[i], shipPosition, shipRadius))
          {
-            if (shipHitboxColor == Draw::red || menuIndex >= 0) 
+            if (shipHitboxColor == Draw::red || menuIndex >= 0)
             {
                // Ship is already destroyed and/or pause menu is toggled on
                std::pair<double, double> rockV0(rockVelocities[i]);
@@ -589,7 +589,7 @@ private:
          rockVelocities[index].first = -rockVelocities[index].first;
          rockVelocities[index].second = -rockVelocities[index].second;
          rockHitboxColors[index] = Draw::green;
-         
+
          // Create identical second rock with negative velocity
          rockPositions.push_back(rockPositions[index]);
          rockVelocities.push_back({-rockVelocities[index].first, -rockVelocities[index].second});
@@ -608,18 +608,20 @@ private:
       std::string gameState;
       switch ((int)menuIndex)
       {
-         case -1: // unpaused, none selected
-            gameState += "Playing";
-            break;
-         case 0: // paused, resume selected
-         case 1: // restart
-         case 2: // quit
-            gameState += "Paused";
-            break;
+      case -1: // unpaused, none selected
+         gameState += "Playing";
+         break;
+      case 0: // paused, resume selected
+      case 1: // restart
+      case 2: // quit
+         gameState += "Paused";
+         break;
       }
-      if (menuIndex >= 0 && shipHitboxColor == Draw::red) gameState = "Game Over";
-      if (menuIndex >= 0 && rockPositions.size() <= 0 && shipHitboxColor != Draw::red) gameState = "Game Won";
+      if (menuIndex >= 0 && shipHitboxColor == Draw::red)
+         gameState = "Game Over";
+      if (menuIndex >= 0 && rockPositions.size() <= 0 && shipHitboxColor != Draw::red)
+         gameState = "Game Won";
 
       return gameState;
-   } 
+   }
 };

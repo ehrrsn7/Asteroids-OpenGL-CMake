@@ -19,8 +19,8 @@ class Game;
 class Window
 {
 public:
-   Window(std::pair<int, int> size, const std::string &title, 
-      std::tuple<double, double, double, double> bgColor = {0.0, 0.0, 0.0, 1.0});
+   Window(std::pair<int, int> size, const std::string &title,
+          std::tuple<double, double, double, double> bgColor = {0.0, 0.0, 0.0, 1.0});
    ~Window();
 
    bool shouldClose() const;
@@ -88,62 +88,62 @@ public:
    ~Draw();
 
    // High-level drawing functions with color
-   enum rocks { SMALL_ROCK, NORMAL_ROCK, LARGE_ROCK }; // match rockFiles[] below
-   void rock(std::pair<double, double> position, double angle, double scale, 
-      std::tuple<double, double, double, double> color = white, rocks which = NORMAL_ROCK);
+   enum rocks
+   {
+      SMALL_ROCK,
+      NORMAL_ROCK,
+      LARGE_ROCK
+   }; // match rockFiles[] below
+   void rock(std::pair<double, double> position, double angle, double scale,
+             std::tuple<double, double, double, double> color = white, rocks which = NORMAL_ROCK);
    void ship(std::pair<double, double> position, double angle, double scale,
-      std::tuple<double, double, double, double> color = white, bool thrusting = false);
+             std::tuple<double, double, double, double> color = white, bool thrusting = false);
    void dot(std::pair<double, double> position, double scale,
-      std::tuple<double, double, double, double> color = white);
+            std::tuple<double, double, double, double> color = white);
    void circle(std::pair<double, double> position, double radius,
-      std::tuple<double, double, double, double> color = white);
+               std::tuple<double, double, double, double> color = white);
    void rectangle(std::pair<double, double> position, std::pair<double, double> dimensions, double angle = 0.0,
-      std::tuple<double, double, double, double> color = white);
-   enum align { LEFT, CENTER, RIGHT };
-   enum style { NONE, UNDERLINE, BOLD, ITALIC };
+                  std::tuple<double, double, double, double> color = white);
+   enum align
+   {
+      LEFT,
+      CENTER,
+      RIGHT
+   };
+   enum style
+   {
+      NONE,
+      UNDERLINE,
+      BOLD,
+      ITALIC
+   };
    void text(std::pair<double, double> position, const std::string &text, double size,
-      std::tuple<double, double, double, double> color = white, 
-      align which = LEFT, style textStyle = NONE);
+             std::tuple<double, double, double, double> color = white,
+             align which = LEFT, style textStyle = NONE);
 
    void setAspectRatio(float aspect);
-   Shader* getShader() { return m_shader; }
+   Shader *getShader() { return m_shader; }
 
    // colors
-   static constexpr std::tuple<double, double, double, double> green
-      {0.0, 1.0, 0.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> red
-      {1.0, 0.0, 0.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> blue
-      {0.0, 0.0, 1.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> white
-      {1.0, 1.0, 1.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> black
-      {0.0, 0.0, 0.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> yellow
-      {1.0, 1.0, 0.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> cyan
-      {0.0, 1.0, 1.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> magenta
-      {1.0, 0.0, 1.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> orange
-      {1.0, 0.5, 0.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> purple
-      {0.5, 0.0, 0.5, 1.0};
-   static constexpr std::tuple<double, double, double, double> brown
-      {0.6, 0.3, 0.0, 1.0};
-   static constexpr std::tuple<double, double, double, double> pink
-      {1.0, 0.75, 0.8, 1.0};
-   static constexpr std::tuple<double, double, double, double> gray
-      {0.5, 0.5, 0.5, 1.0};
-   static constexpr std::tuple<double, double, double, double> lightGray
-      {0.75, 0.75, 0.75, 1.0};
-   static constexpr std::tuple<double, double, double, double> darkGray
-      {0.25, 0.25, 0.25, 1.0};
-   static constexpr std::tuple<double, double, double, double> teal
-      {0.0, 0.5, 0.5, 1.0};
-   static constexpr std::tuple<double, double, double, double> navy
-      {0.0, 0.0, 0.5, 1.0};
-   std::tuple<double, double, double, double> randomColor() {
+   static constexpr std::tuple<double, double, double, double> green{0.0, 1.0, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> red{1.0, 0.0, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> blue{0.0, 0.0, 1.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> white{1.0, 1.0, 1.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> black{0.0, 0.0, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> yellow{1.0, 1.0, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> cyan{0.0, 1.0, 1.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> magenta{1.0, 0.0, 1.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> orange{1.0, 0.5, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> purple{0.5, 0.0, 0.5, 1.0};
+   static constexpr std::tuple<double, double, double, double> brown{0.6, 0.3, 0.0, 1.0};
+   static constexpr std::tuple<double, double, double, double> pink{1.0, 0.75, 0.8, 1.0};
+   static constexpr std::tuple<double, double, double, double> gray{0.5, 0.5, 0.5, 1.0};
+   static constexpr std::tuple<double, double, double, double> lightGray{0.75, 0.75, 0.75, 1.0};
+   static constexpr std::tuple<double, double, double, double> darkGray{0.25, 0.25, 0.25, 1.0};
+   static constexpr std::tuple<double, double, double, double> teal{0.0, 0.5, 0.5, 1.0};
+   static constexpr std::tuple<double, double, double, double> navy{0.0, 0.0, 0.5, 1.0};
+   std::tuple<double, double, double, double> randomColor()
+   {
       return {static_cast<double>(rand()) / RAND_MAX,
               static_cast<double>(rand()) / RAND_MAX,
               static_cast<double>(rand()) / RAND_MAX,
@@ -159,7 +159,7 @@ private:
    GLuint m_shipVAO, m_shipVBO, m_shipEBO;
    unsigned int m_shipLineCount{0}, m_shipTriCount{0};
    GLsizei m_shipVertexCount = 0;
-   
+
    // OpenGL IDs for the Ship Thrust
    void setupShipThrustVertices();
    GLuint m_shipThrustVAO, m_shipThrustVBO, m_shipThrustEBO;
@@ -171,10 +171,9 @@ private:
    unsigned int m_rockTriCount[3];
 
    std::string rockFiles[3] = {
-      "assets/shapes/rockSmall.txt",
-      "assets/shapes/rockNormal.txt",
-      "assets/shapes/rockLarge.txt"
-   };
+       "assets/shapes/rockSmall.txt",
+       "assets/shapes/rockNormal.txt",
+       "assets/shapes/rockLarge.txt"};
 
    // OpenGL IDs for simple dot rendering
    void setupDotVertices();
@@ -197,9 +196,9 @@ private:
    unsigned int m_textTriCount{0};
 
    // init functions to set up the vertex data
-   void loadShape(std::vector<double>& vertices, std::vector<unsigned int>& indices, std::string path);
-   void pushVertex(std::vector<double>& verts, double x, double y);
-   void centerVertices(std::vector<double>& vertices);
+   void loadShape(std::vector<double> &vertices, std::vector<unsigned int> &indices, std::string path);
+   void pushVertex(std::vector<double> &verts, double x, double y);
+   void centerVertices(std::vector<double> &vertices);
 };
 
 int run(UI &ui, Game &game, Draw &gui); // Forward declaration of the run function

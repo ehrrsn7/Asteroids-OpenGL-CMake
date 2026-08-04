@@ -11,8 +11,8 @@
 #include "window.hpp"
 #include "game.hpp" // Required so run() can call game.input, game.update, and game.output
 
-Window::Window(std::pair<int, int> size, const std::string &title, 
-   std::tuple<double, double, double, double> bgColor)
+Window::Window(std::pair<int, int> size, const std::string &title,
+               std::tuple<double, double, double, double> bgColor)
 {
    if (!glfwInit())
    {
@@ -50,21 +50,21 @@ Window::Window(std::pair<int, int> size, const std::string &title,
    }
 
    int bufferWidth, bufferHeight;
-   glfwGetFramebufferSize(m_window, &bufferWidth, &bufferHeight); 
-   glViewport(0, 0, bufferWidth, bufferHeight); 
+   glfwGetFramebufferSize(m_window, &bufferWidth, &bufferHeight);
+   glViewport(0, 0, bufferWidth, bufferHeight);
 
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-   
+
    glClearColor(
-      std::get<0>(bgColor), 
-      std::get<1>(bgColor), 
-      std::get<2>(bgColor), 
-      std::get<3>(bgColor));
+       std::get<0>(bgColor),
+       std::get<1>(bgColor),
+       std::get<2>(bgColor),
+       std::get<3>(bgColor));
 
    // 3. This stays exactly the same!
    glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow *, int w, int h)
-                                 { glViewport(0, 0, w, h); });
+                                  { glViewport(0, 0, w, h); });
 }
 
 Window::~Window()
@@ -286,10 +286,10 @@ namespace
       const size_t base = vertices.size() / 6;
 
       const std::array<std::pair<double, double>, 4> corners = {
-         std::make_pair(x, y),
-         std::make_pair(x + size, y),
-         std::make_pair(x + size, y + size),
-         std::make_pair(x, y + size)};
+          std::make_pair(x, y),
+          std::make_pair(x + size, y),
+          std::make_pair(x + size, y + size),
+          std::make_pair(x, y + size)};
 
       for (const auto &corner : corners)
       {
@@ -317,8 +317,9 @@ namespace
       const double lineAdvance = cellSize * 8.0;
       for (char ch : text)
       {
-         if (ch == '\n') {
-            cursorX = 0.0; // Carriage return (reset horizontal position)
+         if (ch == '\n')
+         {
+            cursorX = 0.0;          // Carriage return (reset horizontal position)
             cursorY -= lineAdvance; // Carriage return (move down to next line)
             continue;
          }
@@ -507,7 +508,7 @@ Draw::~Draw()
 }
 
 void Draw::rock(std::pair<double, double> position, double angle, double scale,
-   std::tuple<double, double, double, double> color, rocks which)
+                std::tuple<double, double, double, double> color, rocks which)
 {
    m_shader->setVec2("u_offset", position.first, position.second);
    m_shader->setFloat("u_scale", static_cast<float>(scale));
@@ -523,7 +524,7 @@ void Draw::rock(std::pair<double, double> position, double angle, double scale,
 }
 
 void Draw::ship(std::pair<double, double> position, double angle, double scale,
-   std::tuple<double, double, double, double> color, bool thrusting)
+                std::tuple<double, double, double, double> color, bool thrusting)
 {
    m_shader->setVec2("u_offset", position.first, position.second);
    m_shader->setFloat("u_scale", static_cast<float>(scale));
@@ -563,7 +564,7 @@ void Draw::ship(std::pair<double, double> position, double angle, double scale,
 }
 
 void Draw::dot(std::pair<double, double> position, double scale,
-   std::tuple<double, double, double, double> color)
+               std::tuple<double, double, double, double> color)
 {
    m_shader->setVec2("u_offset", position.first, position.second);
    m_shader->setFloat("u_scale", static_cast<float>(scale));
@@ -606,25 +607,24 @@ void Draw::setupDotVertices()
    glBindVertexArray(0);
 }
 
-void Draw::rectangle(std::pair<double, double> position, 
-   std::pair<double, double> dimensions, double angle,
-   std::tuple<double, double, double, double> color)
+void Draw::rectangle(std::pair<double, double> position,
+                     std::pair<double, double> dimensions, double angle,
+                     std::tuple<double, double, double, double> color)
 {
    float w = static_cast<float>(dimensions.first);
    float h = static_cast<float>(dimensions.second);
-   
-   // Assuming position is the center. 
+
+   // Assuming position is the center.
    // (If position is bottom-left, change to 0,0 to w,h)
    float hw = w * 0.5f;
    float hh = h * 0.5f;
 
    // Define the 4 corners of the quad (Bottom-Left, Bottom-Right, Top-Right, Top-Left)
    float vertices[] = {
-      -hw, -hh,
+       -hw, -hh,
        hw, -hh,
-       hw,  hh,
-      -hw,  hh
-   };
+       hw, hh,
+       -hw, hh};
 
    // Bind and update the vertex buffer
    glBindVertexArray(m_rectangleVAO);
@@ -646,7 +646,7 @@ void Draw::rectangle(std::pair<double, double> position,
 }
 
 void Draw::circle(std::pair<double, double> position, double radius,
-   std::tuple<double, double, double, double> color)
+                  std::tuple<double, double, double, double> color)
 {
    m_shader->setVec2("u_offset", position.first, position.second);
    m_shader->setFloat("u_scale", static_cast<float>(radius));
@@ -716,13 +716,13 @@ void Draw::setupRectangle()
    glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 
    // Configure the position attribute (assuming layout location 0)
-   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
    glEnableVertexAttribArray(0);
 
    // Set up the EBO with static indices for a quad (two triangles)
    unsigned int indices[] = {
-      0, 1, 2, // First triangle
-      0, 2, 3  // Second triangle
+       0, 1, 2, // First triangle
+       0, 2, 3  // Second triangle
    };
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_rectangleEBO);
    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
@@ -734,13 +734,13 @@ void Draw::setupRectangle()
 }
 
 void Draw::text(std::pair<double, double> position, const std::string &text, double scale,
-   std::tuple<double, double, double, double> color, align which, style textStyle)
+                std::tuple<double, double, double, double> color, align which, style textStyle)
 {
    std::vector<float> vertices;
    std::vector<unsigned int> indices;
    double effectiveCellSize = scale * 0.08;
    double textWidth = appendTextGeometry(vertices, indices, text, scale * 0.08);
-   
+
    glLineWidth(1.5f);
 
    // --- STYLE IMPLEMENTATION (Geometry Modification) ---
@@ -750,58 +750,66 @@ void Draw::text(std::pair<double, double> position, const std::string &text, dou
    unsigned int startIdx, vertexCount;
    switch (textStyle)
    {
-      case ITALIC:
-         // Skew X coordinates based on Y to create a slant.
-         for (size_t i = 0; i < vertices.size(); i += 2)
-         {
-            x = vertices[i];
-            y = vertices[i + 1];
-            x += y * 0.25f; // Adjust this multiplier to increase/decrease the italic slant
-         }
-         break;
-      case BOLD:
-         // Thicken characters by duplicating the geometry with a slight horizontal offset.
-         originalVertSize = vertices.size();
-         originalIdxSize = indices.size();
-         
-         boldOffset = static_cast<double>(effectiveCellSize * 0.6); // Offset distance
-         vertexCount = static_cast<unsigned int>(originalVertSize / 2);
+   case ITALIC:
+      // Skew X coordinates based on Y to create a slant.
+      for (size_t i = 0; i < vertices.size(); i += 2)
+      {
+         x = vertices[i];
+         y = vertices[i + 1];
+         x += y * 0.25f; // Adjust this multiplier to increase/decrease the italic slant
+      }
+      break;
+   case BOLD:
+      // Thicken characters by duplicating the geometry with a slight horizontal offset.
+      originalVertSize = vertices.size();
+      originalIdxSize = indices.size();
 
-         // Append shifted vertices
-         for (size_t i = 0; i < originalVertSize; i += 2)
-         {
-            vertices.push_back(vertices[i] + boldOffset);
-            vertices.push_back(vertices[i + 1]);
-         }
+      boldOffset = static_cast<double>(effectiveCellSize * 0.6); // Offset distance
+      vertexCount = static_cast<unsigned int>(originalVertSize / 2);
 
-         // Append indices for the new vertices
-         for (size_t i = 0; i < originalIdxSize; ++i)
-         {
-            indices.push_back(indices[i] + vertexCount);
-         }
-         break;
-      case UNDERLINE:
-         // Add a single long quad just below the baseline to act as an underline.
-         yTop = static_cast<double>(-effectiveCellSize * 7.5);
-         yBottom = static_cast<double>(-effectiveCellSize * 8.5);
-         xStart = 0.0f;
-         xEnd = static_cast<double>(textWidth);
+      // Append shifted vertices
+      for (size_t i = 0; i < originalVertSize; i += 2)
+      {
+         vertices.push_back(vertices[i] + boldOffset);
+         vertices.push_back(vertices[i + 1]);
+      }
 
-         startIdx = static_cast<unsigned int>(vertices.size() / 2);
+      // Append indices for the new vertices
+      for (size_t i = 0; i < originalIdxSize; ++i)
+      {
+         indices.push_back(indices[i] + vertexCount);
+      }
+      break;
+   case UNDERLINE:
+      // Add a single long quad just below the baseline to act as an underline.
+      yTop = static_cast<double>(-effectiveCellSize * 7.5);
+      yBottom = static_cast<double>(-effectiveCellSize * 8.5);
+      xStart = 0.0f;
+      xEnd = static_cast<double>(textWidth);
 
-         // 4 Vertices for the underline rectangle
-         vertices.push_back(xStart); vertices.push_back(yBottom); // Bottom-Left
-         vertices.push_back(xEnd);   vertices.push_back(yBottom); // Bottom-Right
-         vertices.push_back(xEnd);   vertices.push_back(yTop);    // Top-Right
-         vertices.push_back(xStart); vertices.push_back(yTop);    // Top-Left
+      startIdx = static_cast<unsigned int>(vertices.size() / 2);
 
-         // 6 Indices for the two triangles
-         indices.push_back(startIdx);     indices.push_back(startIdx + 1); indices.push_back(startIdx + 2);
-         indices.push_back(startIdx);     indices.push_back(startIdx + 2); indices.push_back(startIdx + 3);
-         break;
-      case NONE:
-      default:
-         break;
+      // 4 Vertices for the underline rectangle
+      vertices.push_back(xStart);
+      vertices.push_back(yBottom); // Bottom-Left
+      vertices.push_back(xEnd);
+      vertices.push_back(yBottom); // Bottom-Right
+      vertices.push_back(xEnd);
+      vertices.push_back(yTop); // Top-Right
+      vertices.push_back(xStart);
+      vertices.push_back(yTop); // Top-Left
+
+      // 6 Indices for the two triangles
+      indices.push_back(startIdx);
+      indices.push_back(startIdx + 1);
+      indices.push_back(startIdx + 2);
+      indices.push_back(startIdx);
+      indices.push_back(startIdx + 2);
+      indices.push_back(startIdx + 3);
+      break;
+   case NONE:
+   default:
+      break;
    }
 
    // Update the triangle count AFTER styles have potentially appended more indices
@@ -818,16 +826,16 @@ void Draw::text(std::pair<double, double> position, const std::string &text, dou
    double xOffsetAdjustment = 0.0;
    switch (which)
    {
-      case CENTER:
-         xOffsetAdjustment = textWidth * 0.5;
-         break;
-      case RIGHT:
-         xOffsetAdjustment = textWidth;
-         break;
-      case LEFT:
-      default:
-         xOffsetAdjustment = 0.0;
-         break;
+   case CENTER:
+      xOffsetAdjustment = textWidth * 0.5;
+      break;
+   case RIGHT:
+      xOffsetAdjustment = textWidth;
+      break;
+   case LEFT:
+   default:
+      xOffsetAdjustment = 0.0;
+      break;
    }
 
    // Apply adjusted position
@@ -889,14 +897,14 @@ void Draw::setupRockVertices()
       {
          std::cerr << "Failed to load rock shape: " << rockFiles[i] << "\n";
          constexpr double rockFallbackVerts[] = {
-            0.0, 0.2, 0.0, 0.6, 0.6, 0.6,
-            0.17, 0.1, 0.0, 0.6, 0.6, 0.6,
-            0.17, -0.1, 0.0, 0.6, 0.6, 0.6,
-            0.0, -0.2, 0.0, 0.6, 0.6, 0.6,
-            -0.17, -0.1, 0.0, 0.6, 0.6, 0.6,
-            -0.17, 0.1, 0.0, 0.6, 0.6, 0.6};
+             0.0, 0.2, 0.0, 0.6, 0.6, 0.6,
+             0.17, 0.1, 0.0, 0.6, 0.6, 0.6,
+             0.17, -0.1, 0.0, 0.6, 0.6, 0.6,
+             0.0, -0.2, 0.0, 0.6, 0.6, 0.6,
+             -0.17, -0.1, 0.0, 0.6, 0.6, 0.6,
+             -0.17, 0.1, 0.0, 0.6, 0.6, 0.6};
          constexpr unsigned int rockFallbackInds[] = {
-            0, 1, 5, 1, 2, 5, 2, 3, 4, 2, 4, 5};
+             0, 1, 5, 1, 2, 5, 2, 3, 4, 2, 4, 5};
       }
 
       m_rockTriCount[i] = indices.size();
@@ -984,7 +992,8 @@ void Draw::setupShipVertices()
    m_shipVertexCount = vertices.size() / 6; // 6 floats per vertex
 }
 
-void Draw::setupShipThrustVertices() {
+void Draw::setupShipThrustVertices()
+{
    // set up vertices
    std::vector<double> verts;
    std::vector<unsigned int> indices;
@@ -999,12 +1008,21 @@ void Draw::setupShipThrustVertices() {
       std::cerr << "using fallback ship thrust verts\n";
       constexpr double shipThrustFallbackVerts[] = {
           // Line A
-          -1.0f / 25.0f, -10.0f / 25.0f, 0.0f, 1.0f, 0.5f, 0.0f,
-          1.0f / 25.0f, -10.0f / 25.0f, 0.0f, 1.0f, 0.5f, 0.0f,
+          -1.0f / 25.0f,
+          -10.0f / 25.0f,
+          0.0f,
+          1.0f,
+          0.5f,
+          0.0f,
+          1.0f / 25.0f,
+          -10.0f / 25.0f,
+          0.0f,
+          1.0f,
+          0.5f,
+          0.0f,
       };
       constexpr unsigned int shipThrustFallbackInds[] = {
-          0, 1
-      };
+          0, 1};
 
       verts.assign(std::begin(shipThrustFallbackVerts), std::end(shipThrustFallbackVerts));
       indices.assign(std::begin(shipThrustFallbackInds), std::end(shipThrustFallbackInds));
