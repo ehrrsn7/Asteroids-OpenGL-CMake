@@ -481,8 +481,6 @@ private:
                rockHitboxColors[i] = Draw::red;
                laserHitboxColors[j] = Draw::red;
                splitRock(i);
-               std::cout << rockPositions.size() << std::endl;
-
                if (rockPositions.size() <= 1)
                {                 // game won
                   menuIndex = 0; // pause the game
