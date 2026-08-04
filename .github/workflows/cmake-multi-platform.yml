@@ -92,6 +92,14 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
 
+    - name: Copy DLL for Windows Artifact
+      if: runner.os == 'Windows'
+      run: |
+        # Copy glfw3.dll from vcpkg destination right next to Asteroids.exe
+        cp "$env:VCPKG_INSTALLATION_ROOT/../x64-windows/bin/glfw3.dll" ${{ steps.strings.outputs.build-output-dir }}/Release/
+        # Also copy assets folder so the release is fully self-contained!
+        cp -r assets ${{ steps.strings.outputs.build-output-dir }}/Release/
+        
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:

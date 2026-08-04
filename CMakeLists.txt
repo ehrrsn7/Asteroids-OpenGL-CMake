@@ -14,15 +14,5 @@ add_executable(Asteroids
   src/glad/glad.c
 )
 
-# Automatically copy vcpkg DLLs to the output directory on Windows
-if(WIN32)
-  add_custom_command(TARGET Asteroids POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "$<TARGET_FILE_DIR:glfw3>/glfw3.dll"
-    "$<TARGET_FILE_DIR:Asteroids>"
-    VERBATIM
-  )
-endif()
-
 target_include_directories(Asteroids PRIVATE include)
 target_link_libraries(Asteroids PRIVATE OpenGL::GL glfw)
