@@ -97,6 +97,8 @@ public:
       std::tuple<double, double, double, double> color = white);
    void circle(std::pair<double, double> position, double radius,
       std::tuple<double, double, double, double> color = white);
+   void rectangle(std::pair<double, double> position, std::pair<double, double> dimensions, double angle = 0.0,
+      std::tuple<double, double, double, double> color = white);
    enum align { LEFT, CENTER, RIGHT };
    enum style { NONE, UNDERLINE, BOLD, ITALIC };
    void text(std::pair<double, double> position, const std::string &text, double size,
@@ -183,6 +185,11 @@ private:
    void setupCircle();
    GLuint m_circleVAO, m_circleVBO, m_circleEBO;
    unsigned int m_circleTriCount{0};
+
+   // OpenGL IDs for rectangle rendering
+   void setupRectangle();
+   GLuint m_rectangleVAO, m_rectangleVBO, m_rectangleEBO;
+   unsigned int m_rectangleTriCount{0};
 
    // OpenGL IDs for text rendering
    void setupText();

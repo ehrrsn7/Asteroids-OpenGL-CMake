@@ -14,14 +14,15 @@
 class Game
 {
 public:
-   static constexpr double SHIP_ROTATION_SPEED = -M_PI * 2.5;      // radians per second
+   static constexpr double SHIP_ROTATION_SPEED = -M_PI * 2.0;      // radians per second
    static constexpr double SHIP_RADIUS = 0.05;                     // units
    static constexpr double ASTEROID_ROTATION_SPEED = -M_PI * 0.75; // radians per second
-   static constexpr double LASER_SPEED = 1.0;                      // units per second
-   static constexpr double FIRE_RATE = 5.0;                        // shots per second
+   static constexpr double LASER_SPEED = 1.5;                      // units per second
+   static constexpr double FIRE_RATE = 6.0;                        // shots per second
    static constexpr double ROCK_SPEED = 0.3;                       // units per second
    static constexpr double SCREEN_BUFFER = 0.035;
    static constexpr double UI_TOGGLE_RATE = 5.0; // toggles per second
+   static constexpr double LASER_SIZE = 0.065; // units long
 
    Game()
    {
@@ -41,6 +42,7 @@ public:
       rockRadii.clear();
       rockHitboxColors.clear();
       laserPositions.clear();
+      laserAngles.clear();
       laserVelocities.clear();
       laserHitboxColors.clear();
 
@@ -190,8 +192,10 @@ public:
                { // The game is ready to play
                   menuIndex = unpaused;
                }
-               else
+               else if (uiCooldown <= 0.0)
                { // the game isn't even ready - where are the rocks? has the ship been hit?
+                  // reset ui cooldown
+                  uiCooldown = 1.0 / UI_TOGGLE_RATE;
                   std::cout << "Please press restart to reset the asteroids and continue playing.\n";
                }
                return;
@@ -201,11 +205,18 @@ public:
             // Options
 
             // 2. Check "Restart"
-            if (restartIt != menuOptions.end() && currentIt == restartIt)
+            bool restartEnabled = rockPositions.size() <= 0 || shipHitboxColor != Draw::green;
+            if (restartIt != menuOptions.end() && currentIt == restartIt && restartEnabled)
             {
                menuIndex = unpaused;
                resetAllObjects();
                return;
+            }
+            else if (uiCooldown <= 0.0)
+            { // the game isn't even ready - where are the rocks? has the ship been hit?
+               // reset ui cooldown
+               uiCooldown = 1.0 / UI_TOGGLE_RATE;
+               std::cout << "The game is already reset and ready to start playing.\n";
             }
 
             // 3. Check "Quit"
@@ -226,12 +237,14 @@ public:
                 // velocity along the ship's facing direction + ship's current velocity
                 std::cos(shipAngle) * LASER_SPEED + shipVelocity.first,
                 std::sin(shipAngle) * LASER_SPEED + shipVelocity.second});
+            laserAngles.push_back(shipAngle);
             // Reset laser cooldown
             laserHitboxColors.push_back(Draw::green);
             laserCooldown = 1 / FIRE_RATE;
    
             if (laserPositions.size() != laserVelocities.size() ||
-                laserPositions.size() != laserHitboxColors.size())
+               laserPositions.size() != laserHitboxColors.size() || 
+               laserPositions.size() != laserAngles.size())
             {
                throw std::runtime_error("Laser state vectors out of sync.");
             }
@@ -241,7 +254,7 @@ public:
       if (ui.isKeyDown(GLFW_KEY_H) && uiCooldown <= 0.0)
       {
          showHud = !showHud;
-         // reset hitbox cooldown
+         // reset ui cooldown
          uiCooldown = 1.0 / UI_TOGGLE_RATE;
       }
    }
@@ -304,6 +317,7 @@ public:
             laserPositions.erase(laserPositions.begin() + i);
             laserVelocities.erase(laserVelocities.begin() + i);
             laserHitboxColors.erase(laserHitboxColors.begin() + i);
+            laserAngles.erase(laserAngles.begin() + i);
             --i;
          }
       }
@@ -335,9 +349,9 @@ public:
 
       for (size_t i = 0; i < laserPositions.size(); ++i)
       {
-         draw.dot(laserPositions[i], 0.5, draw.white);
+         draw.rectangle(laserPositions[i], {LASER_SIZE, LASER_SIZE * 0.2}, laserAngles[i], draw.white);
          if (showHud)
-            draw.circle(laserPositions[i], 0.02, laserHitboxColors[i]);
+            draw.circle(laserPositions[i], LASER_SIZE * 0.5, laserHitboxColors[i]);
       }
       // draw all rocks
       for (size_t i = 0; i < rockPositions.size(); ++i)
@@ -363,6 +377,7 @@ public:
             playEnabled ? draw.white : draw.gray, 
             draw.CENTER, 
             true ? draw.UNDERLINE : draw.ITALIC);
+         if (menuIndex == 0) draw.rectangle({0.0, -0.35}, {0.5, 0.15}, 0.0, {1.0, 1.0, 1.0, 0.1});
 
          // restart button
          bool restartEnabled = rockPositions.size() <= 0 || shipHitboxColor != Draw::green;
@@ -371,6 +386,7 @@ public:
             restartEnabled ? draw.white : draw.gray, 
             draw.CENTER, 
             true ? draw.UNDERLINE : draw.ITALIC);
+         if (menuIndex == 1) draw.rectangle({0.0, -0.55}, {0.5, 0.15}, 0.0, {1.0, 1.0, 1.0, 0.1});
 
          // quit button
          bool quitEnabled = true;
@@ -379,6 +395,7 @@ public:
             quitEnabled ? draw.white : draw.gray, 
             draw.CENTER, 
             true ? draw.UNDERLINE : draw.ITALIC);
+         if (menuIndex == 2) draw.rectangle({0.0, -0.75}, {0.5, 0.15}, 0.0, {1.0, 1.0, 1.0, 0.1});
       }
    }
 
@@ -405,6 +422,7 @@ private:
    // laser
    std::vector<std::pair<double, double>> laserPositions;
    std::vector<std::pair<double, double>> laserVelocities;
+   std::vector<double> laserAngles;
    std::string hudText;
    double laserCooldown{0.0};
    std::vector<std::tuple<double, double, double, double>> laserHitboxColors;
@@ -549,6 +567,7 @@ private:
                laserPositions.erase(laserPositions.begin() + i);
                laserVelocities.erase(laserVelocities.begin() + i);
                laserHitboxColors.erase(laserHitboxColors.begin() + i);
+               laserAngles.erase(laserAngles.begin() + i);
             }
             else
             {

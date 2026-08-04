@@ -50,11 +50,11 @@ Window::Window(std::pair<int, int> size, const std::string &title,
    }
 
    int bufferWidth, bufferHeight;
-   // 1. Changed "gl" to "glfw"
    glfwGetFramebufferSize(m_window, &bufferWidth, &bufferHeight); 
-   
-   // 2. Changed to use the physical buffer dimensions
    glViewport(0, 0, bufferWidth, bufferHeight); 
+
+   glEnable(GL_BLEND);
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    
    glClearColor(
       std::get<0>(bgColor), 
@@ -466,6 +466,7 @@ Draw::Draw(Shader *shader) : m_shader(shader)
    setupShipVertices();
    setupDotVertices();
    setupCircle();
+   setupRectangle();
    setupText();
 }
 
@@ -478,6 +479,7 @@ Draw::Draw()
    setupShipVertices();
    setupDotVertices();
    setupCircle();
+   setupRectangle();
    setupText();
 }
 
@@ -496,6 +498,9 @@ Draw::~Draw()
    glDeleteVertexArrays(1, &m_circleVAO);
    glDeleteBuffers(1, &m_circleVBO);
    glDeleteBuffers(1, &m_circleEBO);
+   glDeleteVertexArrays(1, &m_rectangleVAO);
+   glDeleteBuffers(1, &m_rectangleVBO);
+   glDeleteBuffers(1, &m_rectangleEBO);
    glDeleteVertexArrays(1, &m_textVAO);
    glDeleteBuffers(1, &m_textVBO);
    glDeleteBuffers(1, &m_textEBO);
@@ -601,6 +606,45 @@ void Draw::setupDotVertices()
    glBindVertexArray(0);
 }
 
+void Draw::rectangle(std::pair<double, double> position, 
+   std::pair<double, double> dimensions, double angle,
+   std::tuple<double, double, double, double> color)
+{
+   float w = static_cast<float>(dimensions.first);
+   float h = static_cast<float>(dimensions.second);
+   
+   // Assuming position is the center. 
+   // (If position is bottom-left, change to 0,0 to w,h)
+   float hw = w * 0.5f;
+   float hh = h * 0.5f;
+
+   // Define the 4 corners of the quad (Bottom-Left, Bottom-Right, Top-Right, Top-Left)
+   float vertices[] = {
+      -hw, -hh,
+       hw, -hh,
+       hw,  hh,
+      -hw,  hh
+   };
+
+   // Bind and update the vertex buffer
+   glBindVertexArray(m_rectangleVAO);
+   glBindBuffer(GL_ARRAY_BUFFER, m_rectangleVBO);
+   glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+   // Apply shader uniforms exactly like your text rendering pipeline
+   m_shader->setVec2("u_offset", static_cast<float>(position.first), static_cast<float>(position.second));
+   m_shader->setFloat("u_scale", 1.0f);
+   m_shader->setFloat("u_aspect", m_aspect);
+   m_shader->setFloat("u_sinAngle", static_cast<float>(std::sin(angle)));
+   m_shader->setFloat("u_cosAngle", static_cast<float>(std::cos(angle)));
+   m_shader->setVec3("u_color", std::get<0>(color), std::get<1>(color), std::get<2>(color));
+   m_shader->setFloat("u_alpha", std::get<3>(color));
+
+   // Draw the quad
+   glDrawElements(GL_TRIANGLES, m_rectangleTriCount, GL_UNSIGNED_INT, 0);
+   glBindVertexArray(0);
+}
+
 void Draw::circle(std::pair<double, double> position, double radius,
    std::tuple<double, double, double, double> color)
 {
@@ -657,13 +701,110 @@ void Draw::setupCircle()
    glBindVertexArray(0);
 }
 
+void Draw::setupRectangle()
+{
+   // Generate OpenGL objects
+   glGenVertexArrays(1, &m_rectangleVAO);
+   glGenBuffers(1, &m_rectangleVBO);
+   glGenBuffers(1, &m_rectangleEBO);
+
+   glBindVertexArray(m_rectangleVAO);
+
+   // Set up the VBO for 4 vertices (2 floats each for x, y)
+   // We use GL_DYNAMIC_DRAW because we will update the geometry in rectangle()
+   glBindBuffer(GL_ARRAY_BUFFER, m_rectangleVBO);
+   glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+
+   // Configure the position attribute (assuming layout location 0)
+   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+   glEnableVertexAttribArray(0);
+
+   // Set up the EBO with static indices for a quad (two triangles)
+   unsigned int indices[] = {
+      0, 1, 2, // First triangle
+      0, 2, 3  // Second triangle
+   };
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_rectangleEBO);
+   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+   glBindVertexArray(0);
+
+   // 2 triangles = 6 indices
+   m_rectangleTriCount = 6;
+}
+
 void Draw::text(std::pair<double, double> position, const std::string &text, double scale,
    std::tuple<double, double, double, double> color, align which, style textStyle)
 {
    std::vector<float> vertices;
    std::vector<unsigned int> indices;
+   double effectiveCellSize = scale * 0.08;
    double textWidth = appendTextGeometry(vertices, indices, text, scale * 0.08);
+   
+   glLineWidth(1.5f);
 
+   // --- STYLE IMPLEMENTATION (Geometry Modification) ---
+   float &x = vertices[0];
+   double y, boldOffset, yTop, yBottom, xStart, xEnd;
+   size_t originalVertSize, originalIdxSize;
+   unsigned int startIdx, vertexCount;
+   switch (textStyle)
+   {
+      case ITALIC:
+         // Skew X coordinates based on Y to create a slant.
+         for (size_t i = 0; i < vertices.size(); i += 2)
+         {
+            x = vertices[i];
+            y = vertices[i + 1];
+            x += y * 0.25f; // Adjust this multiplier to increase/decrease the italic slant
+         }
+         break;
+      case BOLD:
+         // Thicken characters by duplicating the geometry with a slight horizontal offset.
+         originalVertSize = vertices.size();
+         originalIdxSize = indices.size();
+         
+         boldOffset = static_cast<double>(effectiveCellSize * 0.6); // Offset distance
+         vertexCount = static_cast<unsigned int>(originalVertSize / 2);
+
+         // Append shifted vertices
+         for (size_t i = 0; i < originalVertSize; i += 2)
+         {
+            vertices.push_back(vertices[i] + boldOffset);
+            vertices.push_back(vertices[i + 1]);
+         }
+
+         // Append indices for the new vertices
+         for (size_t i = 0; i < originalIdxSize; ++i)
+         {
+            indices.push_back(indices[i] + vertexCount);
+         }
+         break;
+      case UNDERLINE:
+         // Add a single long quad just below the baseline to act as an underline.
+         yTop = static_cast<double>(-effectiveCellSize * 7.5);
+         yBottom = static_cast<double>(-effectiveCellSize * 8.5);
+         xStart = 0.0f;
+         xEnd = static_cast<double>(textWidth);
+
+         startIdx = static_cast<unsigned int>(vertices.size() / 2);
+
+         // 4 Vertices for the underline rectangle
+         vertices.push_back(xStart); vertices.push_back(yBottom); // Bottom-Left
+         vertices.push_back(xEnd);   vertices.push_back(yBottom); // Bottom-Right
+         vertices.push_back(xEnd);   vertices.push_back(yTop);    // Top-Right
+         vertices.push_back(xStart); vertices.push_back(yTop);    // Top-Left
+
+         // 6 Indices for the two triangles
+         indices.push_back(startIdx);     indices.push_back(startIdx + 1); indices.push_back(startIdx + 2);
+         indices.push_back(startIdx);     indices.push_back(startIdx + 2); indices.push_back(startIdx + 3);
+         break;
+      case NONE:
+      default:
+         break;
+   }
+
+   // Update the triangle count AFTER styles have potentially appended more indices
    m_textTriCount = static_cast<unsigned int>(indices.size());
 
    glBindVertexArray(m_textVAO);
@@ -698,16 +839,6 @@ void Draw::text(std::pair<double, double> position, const std::string &text, dou
    m_shader->setVec3("u_color", std::get<0>(color), std::get<1>(color), std::get<2>(color));
    m_shader->setFloat("u_alpha", std::get<3>(color));
 
-   glLineWidth(1.5f);
-   glDrawElements(GL_TRIANGLES, m_textTriCount, GL_UNSIGNED_INT, 0);
-   glBindVertexArray(0);
-
-   // styles:
-   // enum style { NONE, UNDERLINE, BOLD, ITALIC };
-   // Handle styles via uniforms or post-geometry modifications
-   glLineWidth(textStyle == BOLD ? 2.5f : 1.5f); // Example: Make lines thicker for BOLD
-   // TODO UNDERLINE
-   // TODO ITALIC
    glDrawElements(GL_TRIANGLES, m_textTriCount, GL_UNSIGNED_INT, 0);
    glBindVertexArray(0);
 }
