@@ -88,7 +88,7 @@ Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
 
 ```powershell
 cmake --build build --config Debug
-.\build\Asteroids.exe
+.\build\Debug\Asteroids.exe
 ```
 
 ### 5. Runtime note
