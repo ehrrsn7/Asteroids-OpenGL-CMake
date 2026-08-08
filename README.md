@@ -113,7 +113,7 @@ How to fix this:
 
 After restarting, run 
 
-'''
+```
 sudo usermod -aG video $USER
 sudo usermod -aG render $USER
-'''
+```
