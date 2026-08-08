@@ -41,7 +41,8 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libglfw3-dev libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev
+        # Removed libglfw3-dev to prevent target name collisions with FetchContent
+        sudo apt-get install -y libgl1-mesa-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev
 
     - name: Set reusable strings
       id: strings
@@ -66,7 +67,6 @@ jobs:
 
     - name: Copy Assets for Artifact
       run: |
-        # Copy assets folder so the release build is fully self-contained!
         mkdir -p ${{ steps.strings.outputs.build-output-dir }}/Release
         mkdir -p ${{ steps.strings.outputs.build-output-dir }}/Debug
         cp -r assets ${{ steps.strings.outputs.build-output-dir }}/Release/ || true
