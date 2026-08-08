@@ -26,8 +26,8 @@ Then from the project folder:
 $env:Path = "$env:USERPROFILE\AppData\Local\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin;" + $env:Path
 $env:CMAKE_PREFIX_PATH = 'C:\msys64\ucrt64;C:\msys64\mingw64;' + $env:CMAKE_PREFIX_PATH
 cmake -B build -G "MinGW Makefiles"
-cmake --build build --config Debug
-.\build\Asteroids.exe
+cmake --build build
+.\build\Debug\Asteroids.exe
 ```
 
 ## Build
